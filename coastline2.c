@@ -3,6 +3,7 @@
    Polylines: 134 Total points: 5128 */
 
 #define COASTLINE_POLYLINE_COUNT 134
+#define COASTLINE_TOTAL_POINTS 5128
 
 const short coastline_lengths[] = {
     11, 12, 67, 46, 8, 7, 9, 28, 7, 7, 9, 11, 42, 33, 20, 73,
