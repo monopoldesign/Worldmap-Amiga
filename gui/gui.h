@@ -53,10 +53,6 @@ extern UWORD                 WorldmapGTypes[];
 extern struct NewGadget      WorldmapNGad[];
 extern ULONG                 WorldmapGTags[];
 
-extern BOOL zoom_center_set;
-extern short zoom_center_lon;
-extern short zoom_center_lat;
-
 extern int Gadget00Clicked( void );
 extern int Gadget10Clicked( void );
 extern int Gadget20Clicked( void );
@@ -74,8 +70,3 @@ extern int WorldmapNewSize();
 extern int WorldmapRawKey();
 extern int OpenWorldmapWindow( void );
 extern void CloseWorldmapWindow( void );
-
-extern void update_gadgets(void);
-extern void screen_to_lonlat(struct Window *win, short mx, short my, short *lon, short *lat);
-extern void draw(struct Window *win);
-extern void project_points(struct Window *win);

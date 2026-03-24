@@ -29,6 +29,7 @@ int Gadget00Clicked( void )
 	if (zoom_center_lat > 9000) zoom_center_lat = 9000;
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -39,6 +40,7 @@ int Gadget10Clicked( void )
 	if (zoom_center_lat < -9000) zoom_center_lat = -9000;
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -49,6 +51,7 @@ int Gadget20Clicked( void )
 	if (zoom_center_lon < -18000) zoom_center_lon = -18000;
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -59,6 +62,7 @@ int Gadget30Clicked( void )
 	if (zoom_center_lon > 18000) zoom_center_lon = 18000;
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -71,6 +75,7 @@ int Gadget40Clicked( void )
 	update_zoom_display();
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -82,6 +87,7 @@ int Gadget50Clicked( void )
 	update_zoom_display();
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 
@@ -95,6 +101,7 @@ int Gadget60Clicked( void )
 	update_zoom_display();
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 	return TRUE;
 }
 

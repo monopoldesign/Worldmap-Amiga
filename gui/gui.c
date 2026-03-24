@@ -19,11 +19,9 @@
 #include <clib/gadtools_protos.h>
 #include <clib/graphics_protos.h>
 #include <clib/utility_protos.h>
-#include <stdio.h>
 #include <string.h>
 
 #include "gui.h"
-#include "map.h"
 
 struct Screen         *Scr = NULL;
 UBYTE                 *PubScreenName = NULL;
@@ -81,7 +79,7 @@ ULONG WorldmapGTags[] = {
 	(TAG_DONE),
 	(GTTX_Text), (ULONG)"100%", (GTTX_Border), TRUE, (TAG_DONE),
 	(GTTX_Text), (ULONG)"not set", (GTTX_Border), TRUE, (TAG_DONE),
-	(GTTX_Text), (ULONG)"not set", (GTTX_Border), TRUE, (TAG_DONE),
+	(GTTX_Text), (ULONG)"not set", (GTTX_Border), TRUE, (TAG_DONE)
 };
 
 int SetupScreen( void )
@@ -160,28 +158,6 @@ int HandleWorldmapIDCMP( void )
 				func = ( void * )(( struct Gadget * )WorldmapMsg.IAddress )->UserData;
 				running = func();
 				break;
-
-			case IDCMP_MOUSEBUTTONS:
-				if (WorldmapMsg.Code == SELECTDOWN)
-				{
-					short mx = WorldmapMsg.MouseX;
-					short my = WorldmapMsg.MouseY;
-					short x0 = WorldmapWnd->BorderLeft + MAP_X0;
-					short y0 = WorldmapWnd->BorderTop + MAP_Y0;
-					short x1 = x0 + MAP_W;
-					short y1 = y0 + MAP_H;
-
-					if (mx >= x0 && mx < x1 && my >= y0 && my < y1)
-					{
-						screen_to_lonlat(WorldmapWnd, mx, my, &zoom_center_lon, &zoom_center_lat);
-						zoom_center_set = TRUE;
-						project_points(WorldmapWnd);
-						draw(WorldmapWnd);
-						update_gadgets();
-					}
-				}
-				break;
-
 		}
 	}
 	return( running );
@@ -224,7 +200,7 @@ int OpenWorldmapWindow( void )
 				WA_Flags,	WFLG_DRAGBAR|WFLG_DEPTHGADGET|WFLG_CLOSEGADGET|WFLG_SMART_REFRESH|WFLG_ACTIVATE|WFLG_RMBTRAP,
 				WA_Gadgets,	WorldmapGList,
 				WA_Title,	WorldmapWdt,
-				WA_ScreenTitle,	"GadToolsBox V2.0b ï¿½ 1991-1993",
+				WA_ScreenTitle,	"GadToolsBox V2.0b © 1991-1993",
 				WA_PubScreen,	Scr,
 				TAG_DONE )))
 	return( 4L );
@@ -249,27 +225,3 @@ void CloseWorldmapWindow( void )
 	}
 }
 
-void update_gadgets(void)
-{
-	BOOL has_centre = zoom_center_set;
-	char lon_buf[16];
-	char lat_buf[16];
-
-	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget40], WorldmapWnd, NULL, GA_Disabled, !has_centre, TAG_DONE);
-	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget50], WorldmapWnd, NULL, GA_Disabled, !has_centre, TAG_DONE);
-	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget60], WorldmapWnd, NULL, GA_Disabled, !has_centre, TAG_DONE);
-
-	if (has_centre)
-	{
-		sprintf(lon_buf, "%.2f", zoom_center_lon / 100.0);
-		sprintf(lat_buf, "%.2f", zoom_center_lat / 100.0);
-	}
-	else
-	{
-		sprintf(lon_buf, "not set");
-		sprintf(lat_buf, "not set");
-	}
-
-	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget80], WorldmapWnd, NULL, GTTX_Text, (ULONG)lon_buf, TAG_DONE);
-	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget90], WorldmapWnd, NULL, GTTX_Text, (ULONG)lat_buf, TAG_DONE);
-}

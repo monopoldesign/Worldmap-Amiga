@@ -11,6 +11,7 @@
 #include <stdio.h>
 
 #include "gui.h"
+#include "map.h"
 #include "coastline2.c"
 
 struct IntuitionBase *IntuitionBase = NULL;
@@ -19,6 +20,8 @@ struct Library *GadToolsBase = NULL;
 
 short proj_x[COASTLINE_TOTAL_POINTS];
 short proj_y[COASTLINE_TOTAL_POINTS];
+short zoom_cx = 0;
+short zoom_cy = 0;
 
 long zoom = 100;
 BOOL zoom_center_set = FALSE;
@@ -26,11 +29,6 @@ short zoom_center_lon = 0;
 short zoom_center_lat = 0;
 long pan_x = 0;
 long pan_y = 0;
-
-#define MAP_X0	10
-#define MAP_Y0	10
-#define MAP_W	383 - 3
-#define MAP_H	234 - 3
 
 void update_zoom_display(void)
 {
@@ -41,50 +39,55 @@ void update_zoom_display(void)
 		TAG_DONE);
 }
 
+void get_map_coords(struct Window *win, short *x0, short *y0, short *cx, short *cy)
+{
+    short offx = win->BorderLeft;
+    short offy = win->BorderTop;
+
+    *x0 = offx + MAP_X0;
+    *y0 = offy + MAP_Y0;
+
+    if (zoom_center_set)
+    {
+        *cx = (short)(*x0 + ((long)(zoom_center_lon + 18000) * MAP_W) / 36000);
+        *cy = (short)(*y0 + ((long)(9000 - zoom_center_lat) * MAP_H) / 18000);
+    }
+    else
+    {
+        *cx = *x0 + MAP_W / 2;
+        *cy = *y0 + MAP_H / 2;
+    }
+}
+
 void project_points(struct Window *win)
 {
-	short offx = win->BorderLeft;
-	short offy = win->BorderTop;
-	short x0 = offx + MAP_X0;
-	short y0 = offy + MAP_Y0;
-	short iw = MAP_W;
-	short ih = MAP_H;
-	short cx, cy;
+	short x0, y0, cx, cy;
 	int i;
 
-	if (zoom_center_set)
-	{
-		cx = (short)(x0 + ((long)(zoom_center_lon + 18000) * iw) / 36000);
-		cy = (short)(y0 + ((long)(9000 - zoom_center_lat) * ih) / 18000);
-	}
-	else
-	{
-		cx = x0 + iw / 2;
-		cy = y0 + ih / 2;
-	}
+	get_map_coords(win, &x0, &y0, &cx, &cy);
+	zoom_cx = cx;
+	zoom_cy = cy;
 
 	for (i = 0; i < COASTLINE_TOTAL_POINTS; i++)
 	{
-		short bx = (short)(x0 + ((long)(coastline_points[i * 2] + 18000) * iw) / 36000);
-		short by = (short)(y0 + ((long)(9000 - coastline_points[i * 2 + 1]) * ih) / 18000);
-
-		short px = (short)(cx + ((long)(bx - cx) * zoom) / 100);
-		short py = (short)(cy + ((long)(by - cy) * zoom) / 100);
-
-		proj_x[i] = px;
-		proj_y[i] = py;
+		short bx = (short)(x0 + ((long)(coastline_points[i * 2] + 18000) * MAP_W) / 36000);
+		short by = (short)(y0 + ((long)(9000 - coastline_points[i * 2 + 1]) * MAP_H) / 18000);
+		proj_x[i] = (short)(cx + ((long)(bx - cx) * zoom) / 100);
+		proj_y[i] = (short)(cy + ((long)(by - cy) * zoom) / 100);
 	}
 }
 
 void screen_to_lonlat(struct Window *win, short mx, short my, short *lon, short *lat)
 {
-	short offx = win->BorderLeft;
-	short offy = win->BorderTop;
-	short x0 = offx + MAP_X0;
-	short y0 = offy + MAP_Y0;
+	short x0, y0, cx, cy;
+	long bx, by;
 
-	*lon = (short)(((long)(mx - x0) * 36000L) / MAP_W) - 18000;
-	*lat = 9000 - (short)(((long)(my - y0) * 18000L) / MAP_H);
+	get_map_coords(win, &x0, &y0, &cx, &cy);
+	bx = cx + ((long)(mx - cx) * 100L) / zoom;
+	by = cy + ((long)(my - cy) * 100L) / zoom;
+
+	*lon = (short)(((bx - x0) * 36000L) / MAP_W) - 18000;
+	*lat = 9000 - (short)(((by - y0) * 18000L) / MAP_H);
 }
 
 void draw_cross(struct RastPort *rp, short x, short y, short size)
@@ -158,7 +161,7 @@ void draw(struct Window *win)
 	{
 		short cx = (short)(x0 + ((long)(zoom_center_lon + 18000) * MAP_W) / 36000);
 		short cy = (short)(y0 + ((long)(9000 - zoom_center_lat) * MAP_H) / 18000);
-		draw_cross(rp, cx, cy, 5);
+		draw_cross(rp, zoom_cx, zoom_cy, 5);
 	}
 
 	ReadEClock(&t2);
@@ -173,7 +176,6 @@ void draw(struct Window *win)
 int main(void)
 {
 	struct Window *win = NULL;
-	struct IntuiMessage *msg;
 	BOOL running = TRUE;
 
 	IntuitionBase = (struct IntuitionBase *)OpenLibrary("intuition.library", 37);
@@ -213,68 +215,12 @@ int main(void)
 
 	project_points(WorldmapWnd);
 	draw(WorldmapWnd);
+	update_gadgets();
 
 	while (running)
 	{
 		WaitPort(WorldmapWnd->UserPort);
 		running = HandleWorldmapIDCMP();
-		/*
-		while ((msg = (struct IntuiMessage *)GetMsg(win->UserPort)))
-		{
-			switch (msg->Class)
-			{
-				case IDCMP_CLOSEWINDOW:
-					running = FALSE;
-					break;
-
-				case IDCMP_NEWSIZE:
-					project_points(win);
-					draw(win);
-					break;
-
-				case IDCMP_MOUSEBUTTONS:
-					if (msg->Code == SELECTDOWN)
-					{
-						short mx = msg->MouseX;
-						short my = msg->MouseY;
-
-						if (mx >= win->BorderLeft &&
-							my >= win->BorderTop &&
-							mx < win->Width - win->BorderRight &&
-							my < win->Height - win->BorderBottom)
-						{
-							screen_to_lonlat(win, mx, my, &zoom_center_lon, &zoom_center_lat);
-							zoom_center_set = TRUE;
-							draw(win);
-						}
-					}
-					break;
-
-				case IDCMP_RAWKEY:
-					if (!(msg->Code & 0x80) && zoom_center_set)
-					{
-						switch (msg->Code)
-						{
-							case RAWKEY_UP:
-								zoom = zoom * 120 / 100;
-								if (zoom > 1600) zoom = 1600;
-								project_points(win);
-								draw(win);
-								break;
-
-							case RAWKEY_DOWN:
-								zoom = zoom * 100 / 120;
-								if (zoom < 100) zoom = 100;
-								project_points(win);
-								draw(win);
-								break;
-						}
-					}
-					break;
-			}
-			ReplyMsg((struct Message *)msg);
-		}
-		*/
 	}
 
 	CloseWorldmapWindow();
