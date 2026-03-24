@@ -6,55 +6,52 @@
 #include <proto/exec.h>
 #include <proto/intuition.h>
 #include <proto/graphics.h>
+#include <proto/gadtools.h>
 #include <proto/timer.h>
 #include <stdio.h>
 
+#include "gui.h"
 #include "coastline2.c"
-
-#define RAWKEY_UP	0x4c
-#define RAWKEY_DOWN	0x4d
 
 struct IntuitionBase *IntuitionBase = NULL;
 struct GfxBase *GfxBase = NULL;
-
-BOOL zoom_center_set = FALSE;
-short zoom_center_lon = 0;
-short zoom_center_lat = 0;
-long zoom = 100;
+struct Library *GadToolsBase = NULL;
 
 short proj_x[COASTLINE_TOTAL_POINTS];
 short proj_y[COASTLINE_TOTAL_POINTS];
 
-void screen_to_lonlat(struct Window *win, short mx, short my, short *lon, short *lat)
-{
-	short x0 = win->BorderLeft;
-	short y0 = win->BorderTop;
-	short iw = win->Width - win->BorderLeft - win->BorderRight - 1;
-	short ih = win->Height - win->BorderTop - win->BorderBottom - 1;
+long zoom = 100;
+BOOL zoom_center_set = FALSE;
+short zoom_center_lon = 0;
+short zoom_center_lat = 0;
+long pan_x = 0;
+long pan_y = 0;
 
-	*lon = (short)(((long)(mx - x0) * 36000L) / iw) - 18000;
-	*lat = 9000 - (short)(((long)(my - y0) * 18000L) / ih);
-}
+#define MAP_X0	10
+#define MAP_Y0	10
+#define MAP_W	383 - 3
+#define MAP_H	234 - 3
 
-void draw_cross(struct RastPort *rp, short x, short y)
+void update_zoom_display(void)
 {
-	short size = 5;
-	SetAPen(rp, 2);
-	Move(rp, x - size, y);
-	Draw(rp, x + size, y);
-	Move(rp, x, y - size);
-	Draw(rp, x, y + size);
+	char buf[8];
+	sprintf(buf, "%ld%%", zoom);
+	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget70], WorldmapWnd, NULL,
+		GTTX_Text, (ULONG)buf,
+		TAG_DONE);
 }
 
 void project_points(struct Window *win)
 {
-	short x0 = win->BorderLeft;
-	short y0 = win->BorderTop;
-	short iw = win->Width - win->BorderLeft - win->BorderRight - 1;
-	short ih = win->Height - win->BorderTop - win->BorderBottom - 1;
+	short offx = win->BorderLeft;
+	short offy = win->BorderTop;
+	short x0 = offx + MAP_X0;
+	short y0 = offy + MAP_Y0;
+	short iw = MAP_W;
+	short ih = MAP_H;
+	short cx, cy;
 	int i;
 
-	short cx, cy;
 	if (zoom_center_set)
 	{
 		cx = (short)(x0 + ((long)(zoom_center_lon + 18000) * iw) / 36000);
@@ -74,27 +71,44 @@ void project_points(struct Window *win)
 		short px = (short)(cx + ((long)(bx - cx) * zoom) / 100);
 		short py = (short)(cy + ((long)(by - cy) * zoom) / 100);
 
-		if (px < x0) px = x0;
-		if (px > x0 + iw) px = x0 + iw;
-		if (py < y0) py = y0;
-		if (py > y0 + ih) py = y0 + ih;
-
 		proj_x[i] = px;
 		proj_y[i] = py;
 	}
 }
 
+void screen_to_lonlat(struct Window *win, short mx, short my, short *lon, short *lat)
+{
+	short offx = win->BorderLeft;
+	short offy = win->BorderTop;
+	short x0 = offx + MAP_X0;
+	short y0 = offy + MAP_Y0;
+
+	*lon = (short)(((long)(mx - x0) * 36000L) / MAP_W) - 18000;
+	*lat = 9000 - (short)(((long)(my - y0) * 18000L) / MAP_H);
+}
+
+void draw_cross(struct RastPort *rp, short x, short y, short size)
+{
+	SetAPen(rp, 2);
+	Move(rp, x - size, y);
+	Draw(rp, x + size, y);
+	Move(rp, x, y - size);
+	Draw(rp, x, y + size);
+}
+
 void draw(struct Window *win)
 {
 	struct RastPort *rp = win->RPort;
-	const short *p = coastline_points;
-	int i, j;
-	int idx = 0;
+	short offx = win->BorderLeft;
+	short offy = win->BorderTop;
+	short x0 = offx + MAP_X0;
+	short y0 = offy + MAP_Y0;
+	short x1 = x0 + MAP_W;
+	short y1 = y0 + MAP_H;
+	int i, j, idx = 0;
+	BOOL pendown;
 
-	short x0 = win->BorderLeft;
-	short y0 = win->BorderTop;
-	short iw = win->Width - win->BorderLeft - win->BorderRight - 1;
-	short ih = win->Height - win->BorderTop - win->BorderBottom - 1;
+	const short *p = coastline_points;
 
 	struct EClockVal t1, t2;
 	ULONG freq;
@@ -106,27 +120,45 @@ void draw(struct Window *win)
 
 	// clear Window
 	SetAPen(rp, 0);
-	RectFill(rp, x0, y0, x0 + iw - 1, y0 + ih - 1);
+	RectFill(rp, x0, y0, x0 + MAP_W - 1, y0 + MAP_H - 1);
 
 	// draw Coast-Line
 	SetAPen(rp, 1);
 	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
 	{
 		int count = coastline_lengths[i];
-		Move(rp, proj_x[idx], proj_y[idx]);
+		pendown = FALSE;
 
-		for (j = 1; j < count; j++)
+		for (j = 0; j < count; j++)
 		{
-			Draw(rp, proj_x[idx + j], proj_y[idx + j]);
+			short px = proj_x[idx + j];
+			short py = proj_y[idx + j];
+
+			if (px >= x0 && px < x1 && py >= y0 && py < y1)
+			{
+				if (!pendown)
+				{
+					Move(rp, px, py);
+					pendown = TRUE;
+				}
+				else
+				{
+					Draw(rp, px, py);
+				}
+			}
+			else
+			{
+				pendown = FALSE;
+			}
 		}
 		idx += count;
 	}
 
 	if (zoom_center_set)
 	{
-		short cx = (short)(x0 + ((long)(zoom_center_lon + 18000) * iw) / 36000);
-		short cy = (short)(y0 + ((long)(9000 - zoom_center_lat) * ih) / 18000);
-		draw_cross(rp, cx, cy);
+		short cx = (short)(x0 + ((long)(zoom_center_lon + 18000) * MAP_W) / 36000);
+		short cy = (short)(y0 + ((long)(9000 - zoom_center_lat) * MAP_H) / 18000);
+		draw_cross(rp, cx, cy, 5);
 	}
 
 	ReadEClock(&t2);
@@ -154,41 +186,39 @@ int main(void)
 		return 1;
 	}
 
-	win = OpenWindowTags(NULL,
-		WA_Title,       "World Map",
-		WA_Left,        50,
-		WA_Top,         50,
-		WA_Width,       600,
-		WA_Height,      400,
-		WA_MinWidth,    160,
-		WA_MinHeight,   100,
-		WA_MaxWidth,    -1,
-		WA_MaxHeight,   -1,
-		WA_Flags,       WFLG_CLOSEGADGET	|
-						WFLG_DRAGBAR		|
-						WFLG_DEPTHGADGET	|
-						WFLG_SIZEGADGET		|
-						WFLG_ACTIVATE		|
-						WFLG_RMBTRAP,
-		WA_IDCMP,       IDCMP_CLOSEWINDOW	|
-						IDCMP_NEWSIZE		|
-						IDCMP_MOUSEBUTTONS	|
-						IDCMP_RAWKEY,
-		TAG_DONE);
-
-	if (!win)
+	GadToolsBase = OpenLibrary("gadtools.library", 37);
+	if (!GadToolsBase)
 	{
 		CloseLibrary((struct Library *)GfxBase);
 		CloseLibrary((struct Library *)IntuitionBase);
 		return 1;
 	}
 
-	project_points(win);
-	draw(win);
+	if (SetupScreen())
+	{
+		CloseLibrary((struct Library *)GadToolsBase);
+		CloseLibrary((struct Library *)GfxBase);
+		CloseLibrary((struct Library *)IntuitionBase);
+		return 1;
+	}
+
+	if (OpenWorldmapWindow())
+	{
+		CloseDownScreen();
+		CloseLibrary((struct Library *)GadToolsBase);
+		CloseLibrary((struct Library *)GfxBase);
+		CloseLibrary((struct Library *)IntuitionBase);
+		return 1;
+	}
+
+	project_points(WorldmapWnd);
+	draw(WorldmapWnd);
 
 	while (running)
 	{
-		WaitPort(win->UserPort);
+		WaitPort(WorldmapWnd->UserPort);
+		running = HandleWorldmapIDCMP();
+		/*
 		while ((msg = (struct IntuiMessage *)GetMsg(win->UserPort)))
 		{
 			switch (msg->Class)
@@ -244,9 +274,11 @@ int main(void)
 			}
 			ReplyMsg((struct Message *)msg);
 		}
+		*/
 	}
 
-	CloseWindow(win);
+	CloseWorldmapWindow();
+	CloseLibrary((struct Library *)GadToolsBase);
 	CloseLibrary((struct Library *)GfxBase);
 	CloseLibrary((struct Library *)IntuitionBase);
 	return 0;

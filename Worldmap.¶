@@ -42,13 +42,38 @@ Settings (End)
 File
 1 "Worldmap.c"
 "Worldmap.c"
-"Transfer:dev/Worldmap/coastline.c"
+"Transfer:dev/Worldmap/gui.h"
+"Transfer:dev/Worldmap/coastline2.c"
 Storm Shell Project (Dependencies)
 "objects/Worldmap.o" "objects/Worldmap.debug"
 ""
 "objects/Worldmap.o" "objects/Worldmap.debug"
+File
+1 "gui.c"
+"gui.c"
+"Transfer:dev/Worldmap/gui.h"
+Storm Shell Project (Dependencies)
+"objects/gui.o" "objects/gui.debug"
+""
+"objects/gui.o" "objects/gui.debug"
+File
+1 "gui_temp.c"
+"gui_temp.c"
+"Transfer:dev/Worldmap/gui.h"
+Storm Shell Project (Dependencies)
+"objects/gui_temp.o" "objects/gui_temp.debug"
+""
+"objects/gui_temp.o" "objects/gui_temp.debug"
 Section
 1 1 100
+File
+2 "gui.h"
+"gui.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+2 1 95
 File
 21 "coastline.c"
 "coastline.c"
