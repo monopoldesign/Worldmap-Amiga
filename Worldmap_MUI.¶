@@ -40,79 +40,28 @@ Run
 0 0 0 "" ""
 Settings (End)
 File
-1 "Worldmap.c"
-"Worldmap.c"
-"Transfer:dev/Worldmap/gui.h"
-"Transfer:dev/Worldmap/coastline2.c"
-"Transfer:dev/Worldmap/map.h"
+1 "Worldmap_MUI.c"
 Storm Shell Project (Dependencies)
-"objects/Worldmap.o" "objects/Worldmap.debug"
+"objects/Worldmap_MUI.o" "objects/Worldmap_MUI.debug"
 ""
-"objects/Worldmap.o" "objects/Worldmap.debug"
-File
-1 "gui.c"
-"gui.c"
-"Transfer:dev/Worldmap/gui.h"
-"Transfer:dev/Worldmap/map.h"
-Storm Shell Project (Dependencies)
-"objects/gui.o" "objects/gui.debug"
-""
-"objects/gui.o" "objects/gui.debug"
-File
-1 "gui_temp.c"
-"gui_temp.c"
-"Transfer:dev/Worldmap/gui.h"
-Storm Shell Project (Dependencies)
-"objects/gui_temp.o" "objects/gui_temp.debug"
-""
-"objects/gui_temp.o" "objects/gui_temp.debug"
+"objects/Worldmap_MUI.o" "objects/Worldmap_MUI.debug"
 Section
 1 1 100
 File
-2 "gui.h"
-"gui.h"
+10 "Worldmap_MUI"
 Storm Shell Project (Dependencies)
 "" ""
 ""
-File
-2 "map.h"
-Storm Shell Project (Dependencies)
-"" ""
-""
-Section
-2 1 95
-File
-21 "coastline.c"
-"coastline.c"
-Storm Shell Project (Dependencies)
-"" ""
-""
-File
-21 "coastline2.c"
-"coastline2.c"
-Storm Shell Project (Dependencies)
-"" ""
-""
-Section
-21 1 87
-File
-10 "Worldmap"
-"Worldmap"
-Storm Shell Project (Dependencies)
-"" ""
-""
-"Worldmap.link"
+"Worldmap_MUI.link"
 Section
 10 1 40
 File
 5 "storm.lib"
-"storm.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
 5 "amiga.lib"
-"amiga.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""
