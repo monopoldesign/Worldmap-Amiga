@@ -38,6 +38,9 @@ UWORD                  WorldmapWidth = 547;
 UWORD                  WorldmapHeight = 254;
 UBYTE                 *WorldmapWdt = (UBYTE *)"Worldmap";
 
+char lon_buf[16];
+char lat_buf[16];
+
 struct TextAttr topaz8 = {
 	( STRPTR )"topaz.font", 8, 0x00, 0x01 };
 
@@ -252,8 +255,6 @@ void CloseWorldmapWindow( void )
 void update_gadgets(void)
 {
 	BOOL has_centre = zoom_center_set;
-	char lon_buf[16];
-	char lat_buf[16];
 
 	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget40], WorldmapWnd, NULL, GA_Disabled, !has_centre, TAG_DONE);
 	GT_SetGadgetAttrs(WorldmapGadgets[GD_Gadget50], WorldmapWnd, NULL, GA_Disabled, !has_centre, TAG_DONE);
