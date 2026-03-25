@@ -10,9 +10,6 @@
 
 #include "gui.h"
 
-#define PAN_STEP	500
-#define ZOOM_STEP	120
-
 extern long zoom;
 extern BOOL zoom_center_set;
 extern short zoom_center_lon;

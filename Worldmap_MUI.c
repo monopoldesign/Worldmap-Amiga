@@ -2,6 +2,7 @@
 * Header-Files
 *******************************************************************************/
 #include <exec/memory.h>
+#include <libraries/gadtools.h>
 #include <libraries/mui.h>
 #include <pragma/muimaster_lib.h>
 #include <proto/exec.h>
@@ -9,6 +10,7 @@
 #include <proto/timer.h>
 #include <stdio.h>
 
+#include "map.h"
 #include "coastline2.c"
 
 /******************************************************************************
@@ -26,17 +28,15 @@ struct ObjApp
 	APTR    TX_zoom, TX_lon, TX_lat;
 };
 
-#define ID_BTN_N     1
-#define ID_BTN_S     2
-#define ID_BTN_W     3
-#define ID_BTN_E     4
-#define ID_BTN_PLUS  5
-#define ID_BTN_MINUS 6
-#define ID_BTN_RESET 7
-#define ID_REDRAW    8
-
-#define PAN_STEP	500
-#define ZOOM_STEP	120
+#define MN_ZOOM_IN    	1
+#define MN_ZOOM_OUT   	2
+#define MN_RESET      	3
+#define MN_QUIT       	4
+#define MN_PAN_N      	5
+#define MN_PAN_S      	6
+#define MN_PAN_W      	7
+#define MN_PAN_E      	8
+#define ID_REDRAW     	9
 
 /******************************************************************************
 * Prototypes
@@ -74,6 +74,7 @@ short proj_y[COASTLINE_TOTAL_POINTS];
 char lon_buf[16];
 char lat_buf[16];
 char zoom_buf[8];
+char win_title[64];
 
 short last_w = 0;
 short last_h = 0;
@@ -123,11 +124,37 @@ int main(void)
 		{
 			// Window close
 			case MUIV_Application_ReturnID_Quit:
+			case MN_QUIT:
 				if ((MUI_RequestA(App->App, 0, 0, "Quit?", "_Yes|_No", "\33cAre you sure?", 0)) == 1)
 					running = FALSE;
 			break;
 
-			case ID_BTN_N:
+			case ID_REDRAW:
+				needs_draw = TRUE;
+				break;
+
+			case MN_ZOOM_IN:
+				zoom = zoom * 120 / 100;
+				if (zoom > 1600) zoom = 1600;
+				if (!zoom_center_set) zoom_center_set = TRUE;
+				needs_draw = TRUE;
+				break;
+
+			case MN_ZOOM_OUT:
+				zoom = zoom * 100 / 120;
+				if (zoom < 100) zoom = 100;
+				needs_draw = TRUE;
+				break;
+
+			case MN_RESET:
+				zoom = 100;
+				zoom_center_set = FALSE;
+				zoom_center_lon = 0;
+				zoom_center_lat = 0;
+				needs_draw = TRUE;
+				break;
+
+			case MN_PAN_N:
 				if (zoom_center_set)
 				{
 					zoom_center_lat += PAN_STEP;
@@ -136,7 +163,7 @@ int main(void)
 				}
 				break;
 
-			case ID_BTN_S:
+			case MN_PAN_S:
 				if (zoom_center_set)
 				{
 					zoom_center_lat -= PAN_STEP;
@@ -145,7 +172,7 @@ int main(void)
 				}
 				break;
 
-			case ID_BTN_W:
+			case MN_PAN_W:
 				if (zoom_center_set)
 				{
 					zoom_center_lon -= PAN_STEP;
@@ -154,38 +181,13 @@ int main(void)
 				}
 				break;
 
-			case ID_BTN_E:
+			case MN_PAN_E:
 				if (zoom_center_set)
 				{
 					zoom_center_lon += PAN_STEP;
 					if (zoom_center_lon > 18000) zoom_center_lon = 18000;
 					needs_draw = TRUE;
 				}
-				break;
-
-			case ID_BTN_PLUS:
-				zoom = zoom * 120 / 100;
-				if (zoom > 1600) zoom = 1600;
-				if (!zoom_center_set) zoom_center_set = TRUE;
-				needs_draw = TRUE;
-				break;
-
-			case ID_BTN_MINUS:
-				zoom = zoom * 100 / 120;
-				if (zoom < 100) zoom = 100;
-				needs_draw = TRUE;
-				break;
-
-			case ID_BTN_RESET:
-				zoom = 100;
-				zoom_center_set = FALSE;
-				zoom_center_lon = 0;
-				zoom_center_lat = 0;
-				needs_draw = TRUE;
-				break;
-
-			case ID_REDRAW:
-				needs_draw = TRUE;
 				break;
 
 			default:
@@ -245,63 +247,34 @@ struct ObjApp * CreateApp(void)
 	struct ObjApp * ObjectApp;
 
 	APTR	GROUP_ROOT;
-	APTR    GROUP_LEFT;
 	APTR    GROUP_RIGHT;
-	APTR    GROUP_PAN;
-	APTR    GROUP_ZOOM;
 	APTR    GROUP_POS;
+	APTR	GROUP_ZOOM;
+
+	static struct NewMenu MenuData[] =
+	{
+	    { NM_TITLE, "Map",          0,  0, 0, (APTR)0          },
+	    { NM_ITEM,  "Zoom In",     "+", 0, 0, (APTR)MN_ZOOM_IN  },
+	    { NM_ITEM,  "Zoom Out",    "-", 0, 0, (APTR)MN_ZOOM_OUT },
+	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
+	    { NM_ITEM,  "Reset",       "R", 0, 0, (APTR)MN_RESET    },
+	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
+	    { NM_ITEM,  "Quit",        "Q", 0, 0, (APTR)MN_QUIT     },
+	    { NM_TITLE, "Pan",          0,  0, 0, (APTR)0           },
+	    { NM_ITEM,  "North",       "N", 0, 0, (APTR)MN_PAN_N    },
+	    { NM_ITEM,  "South",       "S", 0, 0, (APTR)MN_PAN_S    },
+	    { NM_ITEM,  "West",        "W", 0, 0, (APTR)MN_PAN_W    },
+	    { NM_ITEM,  "East",        "E", 0, 0, (APTR)MN_PAN_E    },
+	    { NM_END,   NULL,           0,  0, 0, (APTR)0           },
+	};
 
 	if (!(ObjectApp = AllocVec(sizeof(struct ObjApp), MEMF_CLEAR)))
 		return(NULL);
-
-	ObjectApp->BT_n = SimpleButton("N");
-	ObjectApp->BT_s = SimpleButton("S");
-	ObjectApp->BT_w = SimpleButton("W");
-	ObjectApp->BT_e = SimpleButton("E");
-	ObjectApp->BT_plus = SimpleButton("+");
-	ObjectApp->BT_minus = SimpleButton("-");
-	ObjectApp->BT_reset = SimpleButton("Reset");
-
-	GROUP_PAN = GroupObject,
-		MUIA_Frame, MUIV_Frame_Group,
-		MUIA_FrameTitle, "Pan",
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
-			Child, RectangleObject, End,
-			Child, ObjectApp->BT_n,
-			Child, RectangleObject, End,
-		End,
-
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
-			Child, ObjectApp->BT_w,
-			Child, RectangleObject, End,
-			Child, ObjectApp->BT_e,
-		End,
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
-			Child, RectangleObject, End,
-			Child, ObjectApp->BT_s,
-			Child, RectangleObject, End,
-		End,
-	End;
 
 	ObjectApp->TX_zoom = TextObject,
 		MUIA_Frame, MUIV_Frame_Text,
 		MUIA_Text_Contents, "100%",
 		MUIA_Text_SetMin, TRUE,
-	End;
-
-	GROUP_ZOOM = GroupObject,
-		MUIA_Frame, MUIV_Frame_Group,
-		MUIA_FrameTitle, "Zoom",
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
-			Child, ObjectApp->BT_plus,
-			Child, ObjectApp->BT_minus,
-		End,
-		Child, ObjectApp->TX_zoom,
-		Child, ObjectApp->BT_reset,
 	End;
 
 	ObjectApp->TX_lon = TextObject,
@@ -325,21 +298,26 @@ struct ObjApp * CreateApp(void)
 		Child, ObjectApp->TX_lat,
 	End;
 
+	GROUP_ZOOM = GroupObject,
+		MUIA_Frame, MUIV_Frame_Group,
+		MUIA_FrameTitle, "Zoom",
+		MUIA_Group_Horiz, FALSE,
+		Child, ObjectApp->TX_zoom,
+	End;
+
 	ObjectApp->AR_map = RectangleObject,
 		MUIA_Background, MUII_BACKGROUND,
 		MUIA_Frame, MUIV_Frame_InputList,
 		MUIA_HorizWeight, 100,
 		MUIA_VertWeight, 100,
-		//MUIA_MinWidth, 200,
-		//MUIA_MinHeight, 150,
 	End;
 
 	GROUP_RIGHT = GroupObject,
 		MUIA_Group_Horiz, FALSE,
 		MUIA_HorizWeight, 0,
-		Child, GROUP_PAN,
-		Child, GROUP_ZOOM,
+		MUIA_FixWidth, 60,
 		Child, GROUP_POS,
+		Child, GROUP_ZOOM,
 		Child, RectangleObject, MUIA_VertWeight, 100, End,
 	End;
 
@@ -352,18 +330,19 @@ struct ObjApp * CreateApp(void)
 	ObjectApp->WI_main = WindowObject,
 		MUIA_Window_Title,	"World Map",
 		MUIA_Window_ID,		MAKE_ID('W', 'M', 'A', 'P'),
-		MUIA_Window_Width, 500,
-		MUIA_Window_Height, 400,
+		MUIA_Window_Width, 640,
+		MUIA_Window_Height, 360,
 		WindowContents,		GROUP_ROOT,
 	End;
 
 	ObjectApp->App = ApplicationObject,
-		MUIA_Application_Title,			"WorldMap",
+		MUIA_Application_Title,			"World Map",
 		MUIA_Application_Base,			"WORLDMAP",
 		MUIA_Application_Version,		"$VER: WorldMap V0.1",
 		MUIA_Application_Copyright,		"2026",
 		MUIA_Application_Author,		"M.Volkel",
 		MUIA_Application_Description,	"Amiga World Map",
+		MUIA_Application_Menustrip,		MUI_MakeObject(MUIO_MenustripNM, MenuData, 0),
 		SubWindow,						ObjectApp->WI_main,
 	End;
 
@@ -379,15 +358,6 @@ struct ObjApp * CreateApp(void)
 		ObjectApp->App, 2,
 		MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit
 	);
-
-	// Button-Methods
-	DoMethod(ObjectApp->BT_n,     MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_N);
-	DoMethod(ObjectApp->BT_s,     MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_S);
-	DoMethod(ObjectApp->BT_w,     MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_W);
-	DoMethod(ObjectApp->BT_e,     MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_E);
-	DoMethod(ObjectApp->BT_plus,  MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_PLUS);
-	DoMethod(ObjectApp->BT_minus, MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_MINUS);
-	DoMethod(ObjectApp->BT_reset, MUIM_Notify, MUIA_Pressed, FALSE, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_BTN_RESET);
 
 	// Resize-Methods
 	DoMethod(ObjectApp->AR_map, MUIM_Notify, MUIA_Width, MUIV_EveryTime, ObjectApp->App, 2, MUIM_Application_ReturnID, ID_REDRAW);
@@ -499,7 +469,6 @@ void draw_map(void)
 	ULONG freq;
 	ULONG ticks;
 	ULONG ms;
-	char title[64];
 
 	freq = ReadEClock(&t1);
 
@@ -546,8 +515,8 @@ void draw_map(void)
 	ticks = t2.ev_lo - t1.ev_lo;
 	ms = (ticks * 1000) / freq;
 
-	sprintf(title, "World Map - Draw Time: %1u ms (%1u ticks)", ms, ticks);
-	//SetWindowTitles(win, title, (STRPTR)~0);
+	sprintf(win_title, "World Map - %1u ms (%1u ticks)", ms, ticks);
+	set(App->WI_main, MUIA_Window_Title, win_title);
 }
 
 /*-----------------------------------------------------------------------------

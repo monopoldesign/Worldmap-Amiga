@@ -6,4 +6,7 @@
 #define MAP_W	383 - 3
 #define MAP_H	234 - 3
 
+#define PAN_STEP	500
+#define ZOOM_STEP	120
+
 #endif
