@@ -1,0 +1,150 @@
+Global M68K Construktors
+	_INIT_3_TimerBase
+Global M68K Destruktors
+	_EXIT_3_TimerBase
+No Global PPC Construktors
+No Global PPC Destruktors
+
+M68K Code
+
+
+  Hunk #0 ( Far Public ) 5112 Bytes (0x13f8)
+  _get_map_coords = 80 (0x50) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  __THISSHAREDLIBRARYBASESIZE = 118 (0x76) referenced 2 times
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _project_points = 364 (0x16c) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _screen_to_lonlat = 672 (0x2a0) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _draw_cross = 912 (0x390) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mAskMinMax = 1056 (0x420) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mDraw = 1144 (0x478) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mSetup = 1720 (0x6b8) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mCleanup = 1852 (0x73c) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mHandleEvent = 1922 (0x782) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mGet = 2234 (0x8ba) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mSet = 2426 (0x97a) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mZoomIn = 2674 (0xa72) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mZoomOut = 2762 (0xaca) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mReset = 2850 (0xb22) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mPanNorth = 2908 (0xb5c) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mPanSouth = 2974 (0xb9e) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mPanWest = 3040 (0xbe0) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mPanEast = 3106 (0xc22) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mNew = 3172 (0xc64) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _mDispose = 3220 (0xc94) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _WorldmapDispatcher = 3248 (0xcb0) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  ___LibOpen = 3772 (0xebc) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  ___LibClose = 3776 (0xec0) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _MCC_Query = 3778 (0xec2) referenced 1 times
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _NextTagItem = 4240 (0x1090) referenced 1 times
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _DoMethod = 4260 (0x10a4) referenced 1 times
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _DoSuperMethod = 4280 (0x10b8) unused, maybe local
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _CoerceMethod = 4306 (0x10d2) unused, maybe local
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _CoerceMethodA = 4328 (0x10e8) unused, maybe local
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _DoMethodA = 4364 (0x110c) unused, maybe local
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _DoSuperMethodA = 4384 (0x1120) referenced 1 times
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _SetSuperAttrs = 4410 (0x113a) unused, maybe local
+    File Boot:dev/c/StormC/Lib/amiga.lib
+  _LibInit = 4468 (0x1174) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _abortLibInit = 4564 (0x11d4) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _LibOpen = 4576 (0x11e0) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  ___LibOpen = 4604 (0x11fc) unused, maybe local
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _LibClose = 4608 (0x1200) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  ___LibClose = 4644 (0x1224) unused, maybe local
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _LibExpunge = 4648 (0x1228) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _LibNull = 4744 (0x1288) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _InitModules = 4784 (0x12b0) referenced 1 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _CleanupModules = 4856 (0x12f8) referenced 2 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _INIT_3_TimerBase = 4920 (0x1338) unused, maybe local
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+  _EXIT_3_TimerBase = 5056 (0x13c0) unused, maybe local
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+
+PowerPC Code
+
+
+Data
+
+
+  Hunk #1 ( Far Public ) 20916 Bytes (0x51b4)
+  _SysBase = 0 (0x0) referenced 5 times
+    File Boot:dev/c/StormC/StormSYS/startups/library_startup.o
+  _coastline_lengths = 8 (0x8) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _coastline_points = 276 (0x114) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _TimerPort = 20788 (0x5134) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _MyTimerBase = 20792 (0x5138) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _WorldMapMCC = 20796 (0x513c) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  ___init_table68k = 20824 (0x5158) referenced 2 times
+    File <Internal Assembled>
+  ___exit_table68k = 20832 (0x5160) referenced 1 times
+    File <Internal Assembled>
+  __LIBRARYJUMPTABLE = 20840 (0x5168) referenced 1 times
+    File <Internal Assembled>
+  _LibNameString = 20864 (0x5180) referenced 1 times
+    File <Internal Assembled>
+  _LibVersionString = 20878 (0x518e) referenced 1 times
+    File <Internal Assembled>
+
+BSS
+
+
+  Hunk #2 ( Far Public ) 64 Bytes (0x40)
+  _IntuitionBase = 0 (0x0) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _GfxBase = 4 (0x4) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _UtilityBase = 8 (0x8) referenced 1 times
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _MUIMasterBase = 12 (0xc) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _TimerRequest = 16 (0x10) unused, maybe local
+    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
+  _TimerBase = 56 (0x38) referenced 3 times
+    File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
+
+END

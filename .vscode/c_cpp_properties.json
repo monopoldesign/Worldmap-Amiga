@@ -7,7 +7,15 @@
                 "/Users/mvolkel/Documents/FS-UAE/Hard Drives/Transfer/dev/Include"
             ],
             "defines": [
-                "AMIGA"
+                "AMIGA",
+                "__a0=",
+                "__a1=",
+                "__a2=",
+                "__a3=",
+                "__a6=",
+                "__d0=",
+                "__d1=",
+                "__d2="
             ],
             "compilerPath": "",
             "cStandard": "c99",

@@ -1,13 +1,14 @@
-#ifndef MAPDEF_H
-#define MAPDEF_H
+#ifndef WORLDMAP_H
+#define WORLDMAP
 
-#define MAP_X0	10
-#define MAP_Y0	10
-#define MAP_W	383 - 3
-#define MAP_H	234 - 3
+#include <exec/libraries.h>
+#include <libraries/mui.h>
 
-#define PAN_STEP	500
-#define ZOOM_STEP	120
+struct WorldMapBase
+{
+	struct Library base;
+	LONG dummy;
+};
 
 #define MYATTR_Base			0x80420000
 

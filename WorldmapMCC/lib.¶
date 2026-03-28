@@ -1,0 +1,127 @@
+Storm Shell Project (0013)
+Settings (Start)
+C/C++ Environment
+"StormC:Include"
+Includepath (End)
+0 "" 80
+0 "objects"
+C/C++ Preprozessor
+0 "NDEBUG" ""
+Defines (End)
+1 1 1
+C/C++ Options
+0 0 0 0 0 0 0 0 0 0 0 1 0 0 0
+C/C++ Optimizer
+6
+C/C++ Warnings
+1 1 1 1 1 1 0 1
+Assembler
+0 ""
+0 "CON://640/200/Storm Assembler/AUTO/WAIT/SCREEN StormScreen"
+0 0
+0 1 60 0 1 0 0 20 0
+Sets (End)
+0 1 0 0 0 2 1 0 0
+1 1 1 1 0 0 0 0 0
+1 0
+0 0 0 0 0
+Linker
+2 0 "StormC:BIN/library_startup.o" 0 0 1 0 1 0 0
+"StormC:Lib" 0 "StormC:lib" 0 0 0
+0 "_WizardSurface"
+0 0 50 0 50 0 50 0 0
+0 0 0 0 0 0 0 0
+Run
+30 "" "" "" 0
+""
+
+1 "CON://640/200/Console/AUTO/WAIT" "RAM:Output" "RAM:Input"
+1 0
+0 0 0 "" ""
+Settings (End)
+File
+1 "lib.c"
+"lib.c"
+"Transfer:dev/Worldmap/SharedLib_Worldmap/lib.h"
+"Transfer:dev/Worldmap/SharedLib_Worldmap/worldmap.h"
+"Transfer:dev/Worldmap/SharedLib_Worldmap/coastline2.c"
+Storm Shell Project (Dependencies)
+"lib.o" "lib.debug"
+""
+"lib.o" "lib.debug"
+Section
+1 1 100
+File
+2 "lib_protos.h"
+"lib_protos.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+2 "lib.h"
+"lib.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+2 "worldmap.h"
+"worldmap.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+2 1 95
+File
+21 "coastline2.c"
+"coastline2.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+21 1 87
+File
+16 "lib.fd"
+"lib.fd"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+16 1 75
+File
+10 "worldmap.mcc"
+"worldmap.library"
+Storm Shell Project (Dependencies)
+"" ""
+""
+"worldmap.mcc.link"
+Section
+10 1 0
+File
+9 "test.¶"
+"test.¶"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+9 1 0
+File
+5 "storm020.lib"
+"storm020.lib"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+5 "debug.lib"
+"debug.lib"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+5 "amiga.lib"
+"amiga.lib"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+5 1 -50
+Storm Shell Project (End)
