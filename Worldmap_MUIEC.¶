@@ -42,7 +42,7 @@ Settings (End)
 File
 1 "Worldmap_MUIEC.c"
 "Worldmap_MUIEC.c"
-"Transfer:dev/Worldmap/map.h"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
 Storm Shell Project (Dependencies)
 "objects/Worldmap_MUIEC.o" "objects/Worldmap_MUIEC.debug"
 ""
@@ -50,8 +50,8 @@ Storm Shell Project (Dependencies)
 Section
 1 1 100
 File
-2 "map.h"
-"map.h"
+2 "worldmap_mcc.h"
+"worldmap_mcc.h"
 Storm Shell Project (Dependencies)
 "" ""
 ""

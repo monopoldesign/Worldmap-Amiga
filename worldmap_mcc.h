@@ -1,13 +1,19 @@
-#ifndef MAPDEF_H
-#define MAPDEF_H
+#ifndef LIB_H
+#define LIB_H
+
+#include <exec/libraries.h>
+#include <libraries/mui.h>
+
+/******************************************************************************
+* Definitions
+*******************************************************************************/
+#define ZOOM_STEP			20
+#define PAN_STEP			500
 
 #define MAP_X0	10
 #define MAP_Y0	10
 #define MAP_W	383 - 3
 #define MAP_H	234 - 3
-
-#define PAN_STEP	500
-#define ZOOM_STEP	120
 
 #define MYATTR_Base			0x80420000
 

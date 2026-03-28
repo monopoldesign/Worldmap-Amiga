@@ -8,96 +8,92 @@ No Global PPC Destruktors
 M68K Code
 
 
-  Hunk #0 ( Far Public ) 5112 Bytes (0x13f8)
-  _get_map_coords = 80 (0x50) unused, maybe local
+  Hunk #0 ( Far Public ) 4980 Bytes (0x1374)
+  ___LibOpen = 80 (0x50) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  __THISSHAREDLIBRARYBASESIZE = 118 (0x76) referenced 2 times
+  ___LibClose = 84 (0x54) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _project_points = 364 (0x16c) unused, maybe local
+  _MCC_Query = 86 (0x56) referenced 1 times
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _screen_to_lonlat = 672 (0x2a0) unused, maybe local
+  __THISSHAREDLIBRARYBASESIZE = 114 (0x72) referenced 2 times
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _draw_cross = 912 (0x390) unused, maybe local
+  _mSetup = 490 (0x1ea) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mAskMinMax = 1056 (0x420) unused, maybe local
+  _mCleanup = 622 (0x26e) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mDraw = 1144 (0x478) unused, maybe local
+  _mAskMinMax = 692 (0x2b4) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mSetup = 1720 (0x6b8) unused, maybe local
+  _mDraw = 780 (0x30c) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mCleanup = 1852 (0x73c) unused, maybe local
+  _mHandleEvent = 1356 (0x54c) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mHandleEvent = 1922 (0x782) unused, maybe local
+  _mGet = 1672 (0x688) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mGet = 2234 (0x8ba) unused, maybe local
+  _mSet = 1870 (0x74e) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mSet = 2426 (0x97a) unused, maybe local
+  _mZoomIn = 2120 (0x848) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mZoomIn = 2674 (0xa72) unused, maybe local
+  _mZoomOut = 2208 (0x8a0) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mZoomOut = 2762 (0xaca) unused, maybe local
+  _mReset = 2296 (0x8f8) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mReset = 2850 (0xb22) unused, maybe local
+  _mPanNorth = 2354 (0x932) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mPanNorth = 2908 (0xb5c) unused, maybe local
+  _mPanSouth = 2420 (0x974) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mPanSouth = 2974 (0xb9e) unused, maybe local
+  _mPanWest = 2486 (0x9b6) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mPanWest = 3040 (0xbe0) unused, maybe local
+  _mPanEast = 2552 (0x9f8) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mPanEast = 3106 (0xc22) unused, maybe local
+  _WorldmapDispatcher = 2620 (0xa3c) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mNew = 3172 (0xc64) unused, maybe local
+  _get_map_coords = 3088 (0xc10) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _mDispose = 3220 (0xc94) unused, maybe local
+  _project_points = 3376 (0xd30) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _WorldmapDispatcher = 3248 (0xcb0) unused, maybe local
+  _screen_to_lonlat = 3684 (0xe64) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  ___LibOpen = 3772 (0xebc) unused, maybe local
+  _draw_cross = 3924 (0xf54) unused, maybe local
     File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  ___LibClose = 3776 (0xec0) unused, maybe local
-    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _MCC_Query = 3778 (0xec2) referenced 1 times
-    File Transfer:dev/Worldmap/WorldmapMCC/lib.o
-  _NextTagItem = 4240 (0x1090) referenced 1 times
+  _NextTagItem = 4108 (0x100c) referenced 1 times
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _DoMethod = 4260 (0x10a4) referenced 1 times
+  _DoMethod = 4128 (0x1020) referenced 1 times
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _DoSuperMethod = 4280 (0x10b8) unused, maybe local
+  _DoSuperMethod = 4148 (0x1034) unused, maybe local
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _CoerceMethod = 4306 (0x10d2) unused, maybe local
+  _CoerceMethod = 4174 (0x104e) unused, maybe local
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _CoerceMethodA = 4328 (0x10e8) unused, maybe local
+  _CoerceMethodA = 4196 (0x1064) unused, maybe local
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _DoMethodA = 4364 (0x110c) unused, maybe local
+  _DoMethodA = 4232 (0x1088) unused, maybe local
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _DoSuperMethodA = 4384 (0x1120) referenced 1 times
+  _DoSuperMethodA = 4252 (0x109c) referenced 1 times
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _SetSuperAttrs = 4410 (0x113a) unused, maybe local
+  _SetSuperAttrs = 4278 (0x10b6) unused, maybe local
     File Boot:dev/c/StormC/Lib/amiga.lib
-  _LibInit = 4468 (0x1174) referenced 1 times
+  _LibInit = 4336 (0x10f0) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _abortLibInit = 4564 (0x11d4) referenced 1 times
+  _abortLibInit = 4432 (0x1150) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _LibOpen = 4576 (0x11e0) referenced 1 times
+  _LibOpen = 4444 (0x115c) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  ___LibOpen = 4604 (0x11fc) unused, maybe local
+  ___LibOpen = 4472 (0x1178) unused, maybe local
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _LibClose = 4608 (0x1200) referenced 1 times
+  _LibClose = 4476 (0x117c) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  ___LibClose = 4644 (0x1224) unused, maybe local
+  ___LibClose = 4512 (0x11a0) unused, maybe local
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _LibExpunge = 4648 (0x1228) referenced 1 times
+  _LibExpunge = 4516 (0x11a4) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _LibNull = 4744 (0x1288) referenced 1 times
+  _LibNull = 4612 (0x1204) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _InitModules = 4784 (0x12b0) referenced 1 times
+  _InitModules = 4652 (0x122c) referenced 1 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _CleanupModules = 4856 (0x12f8) referenced 2 times
+  _CleanupModules = 4724 (0x1274) referenced 2 times
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _INIT_3_TimerBase = 4920 (0x1338) unused, maybe local
+  _INIT_3_TimerBase = 4788 (0x12b4) unused, maybe local
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
-  _EXIT_3_TimerBase = 5056 (0x13c0) unused, maybe local
+  _EXIT_3_TimerBase = 4924 (0x133c) unused, maybe local
     File Boot:dev/c/StormC/StormSYS/lib/stormclibstartup020.lib
 
 PowerPC Code

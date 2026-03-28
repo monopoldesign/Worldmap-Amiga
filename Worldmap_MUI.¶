@@ -41,6 +41,9 @@ Run
 Settings (End)
 File
 1 "Worldmap_MUI.c"
+"Worldmap_MUI.c"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
+"Transfer:dev/Worldmap/coastline2.c"
 Storm Shell Project (Dependencies)
 "objects/Worldmap_MUI.o" "objects/Worldmap_MUI.debug"
 ""
@@ -48,7 +51,24 @@ Storm Shell Project (Dependencies)
 Section
 1 1 100
 File
+2 "worldmap_mcc.h"
+"worldmap_mcc.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+2 1 95
+File
+21 "coastline2.c"
+"coastline2.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+21 1 87
+File
 10 "Worldmap_MUI"
+"Worldmap_MUI"
 Storm Shell Project (Dependencies)
 "" ""
 ""
@@ -57,11 +77,13 @@ Section
 10 1 40
 File
 5 "storm.lib"
+"storm.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
 5 "amiga.lib"
+"amiga.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""

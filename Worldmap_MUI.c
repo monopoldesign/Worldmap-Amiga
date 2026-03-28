@@ -10,7 +10,7 @@
 #include <proto/timer.h>
 #include <stdio.h>
 
-#include "map.h"
+#include "worldmap_mcc.h"
 #include "coastline2.c"
 
 /******************************************************************************
@@ -134,14 +134,14 @@ int main(void)
 				break;
 
 			case MN_ZOOM_IN:
-				zoom = zoom * 120 / 100;
+				zoom = zoom * (100 + ZOOM_STEP) / 100;
 				if (zoom > 1600) zoom = 1600;
 				if (!zoom_center_set) zoom_center_set = TRUE;
 				needs_draw = TRUE;
 				break;
 
 			case MN_ZOOM_OUT:
-				zoom = zoom * 100 / 120;
+				zoom = zoom * 100 / (100 + ZOOM_STEP);
 				if (zoom < 100) zoom = 100;
 				needs_draw = TRUE;
 				break;
@@ -254,8 +254,8 @@ struct ObjApp * CreateApp(void)
 	static struct NewMenu MenuData[] =
 	{
 	    { NM_TITLE, "Map",          0,  0, 0, (APTR)0          },
-	    { NM_ITEM,  "Zoom In",     "+", 0, 0, (APTR)MN_ZOOM_IN  },
-	    { NM_ITEM,  "Zoom Out",    "-", 0, 0, (APTR)MN_ZOOM_OUT },
+	    { NM_ITEM,  "Zoom In",     "I", 0, 0, (APTR)MN_ZOOM_IN  },
+	    { NM_ITEM,  "Zoom Out",    "O", 0, 0, (APTR)MN_ZOOM_OUT },
 	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
 	    { NM_ITEM,  "Reset",       "R", 0, 0, (APTR)MN_RESET    },
 	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },

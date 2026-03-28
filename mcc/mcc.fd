@@ -1,4 +1,4 @@
-##base _TestBase
+##base _WorldmapBase
 ##bias 30
 ##public
 MCC_Query(which)(d0)

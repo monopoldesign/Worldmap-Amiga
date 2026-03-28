@@ -44,7 +44,7 @@ File
 "Worldmap.c"
 "Transfer:dev/Worldmap/gui.h"
 "Transfer:dev/Worldmap/coastline2.c"
-"Transfer:dev/Worldmap/map.h"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
 Storm Shell Project (Dependencies)
 "objects/Worldmap.o" "objects/Worldmap.debug"
 ""
@@ -62,6 +62,7 @@ File
 1 "gui_temp.c"
 "gui_temp.c"
 "Transfer:dev/Worldmap/gui.h"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
 Storm Shell Project (Dependencies)
 "objects/gui_temp.o" "objects/gui_temp.debug"
 ""
@@ -75,7 +76,8 @@ Storm Shell Project (Dependencies)
 "" ""
 ""
 File
-2 "map.h"
+2 "worldmap_mcc.h"
+"worldmap_mcc.h"
 Storm Shell Project (Dependencies)
 "" ""
 ""

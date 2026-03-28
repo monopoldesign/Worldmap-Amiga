@@ -9,6 +9,7 @@
 #include <proto/graphics.h>
 
 #include "gui.h"
+#include "worldmap_mcc.h"
 
 extern long zoom;
 extern BOOL zoom_center_set;
@@ -66,7 +67,7 @@ int Gadget30Clicked( void )
 int Gadget40Clicked( void )
 {
 	/* routine when gadget "+" is clicked. */
-	zoom = zoom * ZOOM_STEP / 100;
+	zoom = zoom * (100 + ZOOM_STEP) / 100;
 	if (zoom > 1600) zoom = 1600;
 	if (!zoom_center_set) zoom_center_set = TRUE;
 	update_zoom_display();
@@ -79,7 +80,7 @@ int Gadget40Clicked( void )
 int Gadget50Clicked( void )
 {
 	/* routine when gadget "-" is clicked. */
-	zoom = zoom * 100 / ZOOM_STEP;
+	zoom = zoom * 100 / (100 + ZOOM_STEP);
 	if (zoom < 100) zoom = 100;
 	update_zoom_display();
 	project_points(WorldmapWnd);

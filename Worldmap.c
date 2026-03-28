@@ -11,7 +11,7 @@
 #include <stdio.h>
 
 #include "gui.h"
-#include "map.h"
+#include "worldmap_mcc.h"
 #include "coastline2.c"
 
 struct IntuitionBase *IntuitionBase = NULL;
