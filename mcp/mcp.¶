@@ -10,7 +10,7 @@ C/C++ Preprozessor
 Defines (End)
 1 1 1
 C/C++ Options
-0 1 1 0 0 0 0 0 0 1 0 0 0 0 0
+0 1 1 2 0 1 2 0 0 1 0 0 0 0 0
 C/C++ Optimizer
 9
 C/C++ Warnings
@@ -40,64 +40,56 @@ Run
 0 0 0 "" ""
 Settings (End)
 File
-1 "mcc.c"
-"mcc.c"
-"Transfer:dev/Worldmap/mcc/coastline2.c"
-"Transfer:dev/Worldmap/mcc/mcc.h"
+1 "mcp.c"
+"mcp.c"
+"Transfer:dev/Worldmap/mcp/mcp.h"
 Storm Shell Project (Dependencies)
-"objects/mcc.o" "objects/mcc.debug"
+"objects/mcp.o" "objects/mcp.debug"
 ""
-"objects/mcc.o" "objects/mcc.debug"
+"objects/mcp.o" "objects/mcp.debug"
 Section
 1 1 100
 File
-2 "mcc_protos.h"
-"mcc_protos.h"
+2 "mcp_protos.h"
+"mcp_protos.h"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
-2 "mcc.h"
-"mcc.h"
+2 "mcp.h"
+"mcp.h"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 Section
 2 1 95
 File
-21 "coastline2.c"
-"coastline2.c"
-Storm Shell Project (Dependencies)
-"" ""
-""
-Section
-21 1 87
-File
-16 "mcc.fd"
-"mcc.fd"
+16 "mcp.fd"
+"mcp.fd"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 Section
 16 1 75
 File
-10 "Worldmap.mcc"
-"worldmap.mcc"
+10 "Worldmap.mcp"
+"mcp.library"
+"worldmap.mcp"
 Storm Shell Project (Dependencies)
 "" ""
 ""
-"Worldmap.mcc.link"
+"Worldmap.mcp.link"
 Section
 10 1 40
 File
-5 "storm.lib"
-"storm.lib"
+5 "amiga.lib"
+"amiga.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
-5 "amiga.lib"
-"amiga.lib"
+5 "storm.lib"
+"storm.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""

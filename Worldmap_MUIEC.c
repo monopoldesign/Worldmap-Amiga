@@ -10,6 +10,9 @@
 #include <stdio.h>
 
 #include "worldmap_mcc.h"
+#include "worldmap_mcp.h"
+
+#pragma amicall(WorldmapBase, 0x1e, MCP_Query(d0))
 
 /******************************************************************************
 * Definitions
@@ -22,7 +25,7 @@ struct ObjApp
 	APTR    TX_zoom, TX_lon, TX_lat;
 };
 
-struct WorldMapBase
+struct WorldmapBase
 {
 	struct Library base;
 	LONG dummy;
@@ -60,7 +63,7 @@ struct IntuitionBase *IntuitionBase;
 struct Library *MUIMasterBase;
 struct LibBase *TestBase;
 
-struct WorldMapBase *WorldMapBase = NULL;
+struct WorldmapBase *WorldmapBase = NULL;
 struct ObjApp *App = NULL;
 
 /******************************************************************************
@@ -227,26 +230,7 @@ struct ObjApp * CreateApp(void)
 		MUIA_Text_SetMin, TRUE,
 	End;
 
-	/*
-	if (TestBase = (struct LibBase *) OpenLibrary("worldmap.library",1))
-	{
-		printf("worldmap.library opened\n");
-		mcc = (struct MUI_CustomClass *)MCC_Query(2);
-		printf("Class = %lx\n", (ULONG)mcc);
-
-		if (mcc)
-		{
-			ObjectApp->AR_map = NewObject(mcc->mcc_Class, NULL,
-				MUIA_Background, MUII_BACKGROUND,
-				MUIA_Frame, MUIV_Frame_InputList,
-				MUIA_HorizWeight, 100,
-				MUIA_VertWeight, 100,
-			TAG_END);
-		}
-	}
-	*/
-
-	ObjectApp->AR_map = MUI_NewObject("worldmap.mcc",
+	ObjectApp->AR_map = MUI_NewObject("Worldmap.mcc",
 		MUIA_Background, MUII_BACKGROUND,
 		MUIA_Frame, MUIV_Frame_InputList,
 		MUIA_HorizWeight, 100,

@@ -1,0 +1,5 @@
+##base _WorldmapBase
+##bias 30
+##public
+MCP_Query(which)(d0)
+##end

@@ -58,71 +58,84 @@ void __LibClose(register __a6 struct WorldmapBase *base)
 /*-----------------------------------------------------------------------------
 - MCC_Query
 ------------------------------------------------------------------------------*/
-struct MUI_CustomClass * MCC_Query(register __d0 LONG which, register __a6 struct WorldmapBase *base)
+ULONG MCC_Query(register __d0 LONG which, register __a6 struct WorldmapBase *base)
 {
 	switch (which)
 	{
-		case 0:
-			if (!WorldMapMCC)
-			{
-				MUIMasterBase = OpenLibrary(MUIMASTER_NAME, MUIMASTER_VMIN);
-				if (!MUIMasterBase) return NULL;
+		case 0: return (ULONG)WorldMapMCC;
+		case 3: return NULL;
+	}
+	return NULL;
+}
 
-				WorldMapMCC = MUI_CreateCustomClass(
-					(struct Library *)base, MUIC_Area, NULL,
-					sizeof(struct MapData),
-					WorldmapDispatcher
-				);
+/*-----------------------------------------------------------------------------
+- INIT_5_UserInit called by __LibInit()
+------------------------------------------------------------------------------*/
+void INIT_5_UserInit(void)
+{
+	if (!WorldMapMCC)
+	{
+		MUIMasterBase = OpenLibrary(MUIMASTER_NAME, MUIMASTER_VMIN);
+		if (MUIMasterBase)
+		{
+			WorldMapMCC = MUI_CreateCustomClass(
+				NULL,
+				MUIC_Area, NULL,
+				sizeof(struct MapData),
+				WorldmapDispatcher
+			);
 
-				if (WorldMapMCC)
-				{
-					IntuitionBase = (struct IntuitionBase *)WorldMapMCC->mcc_IntuitionBase;
-					GfxBase = (struct GfxBase *)WorldMapMCC->mcc_GfxBase;
-					UtilityBase = WorldMapMCC->mcc_UtilityBase;
-
-					TimerPort = CreateMsgPort();
-					if (TimerPort)
-					{
-						TimerRequest.tr_node.io_Message.mn_ReplyPort = TimerPort;
-						if (!OpenDevice("timer.device", UNIT_MICROHZ, (struct IORequest *)&TimerRequest, 0))
-							MyTimerBase = (struct Device *)TimerRequest.tr_node.io_Device;
-					}
-				}
-				else
-				{
-					CloseLibrary(MUIMasterBase);
-					MUIMasterBase = NULL;
-				}
-			}
-			return WorldMapMCC;
-
-		case 3:
 			if (WorldMapMCC)
 			{
-				MUI_DeleteCustomClass(WorldMapMCC);
-				WorldMapMCC = NULL;
-			}
+				IntuitionBase = (struct IntuitionBase *)WorldMapMCC->mcc_IntuitionBase;
+				GfxBase = (struct GfxBase *)WorldMapMCC->mcc_GfxBase;
+				UtilityBase = WorldMapMCC->mcc_UtilityBase;
 
-			if (MyTimerBase)
-			{
-				CloseDevice((struct IORequest *)&TimerRequest);
-				MyTimerBase = NULL;
+				TimerPort = CreateMsgPort();
+				if (TimerPort)
+				{
+					TimerRequest.tr_node.io_Message.mn_ReplyPort = TimerPort;
+					if (!OpenDevice("timer.device", UNIT_MICROHZ, (struct IORequest *)&TimerRequest, 0))
+						MyTimerBase = (struct Device *)TimerRequest.tr_node.io_Device;
+				}
 			}
-
-			if (TimerPort)
-			{
-				DeleteMsgPort(TimerPort);
-				TimerPort = NULL;
-			}
-
-			if (MUIMasterBase)
+			else
 			{
 				CloseLibrary(MUIMasterBase);
 				MUIMasterBase = NULL;
 			}
-			return NULL;
+		}
 	}
-	return NULL;
+}
+
+/*-----------------------------------------------------------------------------
+- EXIT_5_UserExit called by __LibExpunge()
+------------------------------------------------------------------------------*/
+void EXIT_5_UserExit(void)
+{
+	if (WorldMapMCC)
+	{
+		MUI_DeleteCustomClass(WorldMapMCC);
+		WorldMapMCC = NULL;
+	}
+
+	if (MyTimerBase)
+	{
+		CloseDevice((struct IORequest *)&TimerRequest);
+		MyTimerBase = NULL;
+	}
+
+	if (TimerPort)
+	{
+		DeleteMsgPort(TimerPort);
+		TimerPort = NULL;
+	}
+
+	if (MUIMasterBase)
+	{
+		CloseLibrary(MUIMasterBase);
+		MUIMasterBase = NULL;
+	}
 }
 
 /******************************************************************************

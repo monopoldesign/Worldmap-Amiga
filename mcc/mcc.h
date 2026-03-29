@@ -1,5 +1,5 @@
-#ifndef LIB_H
-#define LIB_H
+#ifndef MCC_H
+#define MCC_H
 
 #include <exec/libraries.h>
 #include <libraries/mui.h>
