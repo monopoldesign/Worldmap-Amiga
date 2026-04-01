@@ -14,15 +14,18 @@
 
 #include "mcc.h"
 #include "mcp.h"
-#include "coastline2.c"
+#include "coastline_reduced.c"
+#include "coastline_full.c"
 
 #pragma libbase WorldmapBase
 
 struct MapData
 {
 	struct MUI_EventHandlerNode EHNode;
-	short proj_x[COASTLINE_TOTAL_POINTS];
-	short proj_y[COASTLINE_TOTAL_POINTS];
+	short proj_reduced_x[COASTLINE_REDUCED_TOTAL_POINTS];
+	short proj_reduced_y[COASTLINE_REDUCED_TOTAL_POINTS];
+	short proj_full_x[COASTLINE_FULL_TOTAL_POINTS];
+	short proj_full_y[COASTLINE_FULL_TOTAL_POINTS];
 	short zoom_cx;
 	short zoom_cy;
 	long  zoom;
@@ -31,10 +34,10 @@ struct MapData
 	short zoom_center_lat;
 	ULONG draw_time_ms;
 
-	LONG resolution, zoom_step, pan_step;
+	LONG resolution, zoom_step, pan_step, cross_size;
 	struct MUI_PenSpec coast_penspec, cross_penspec;
 	LONG coast_pen, cross_pen;
-	BOOL coast_penchange, cross_penchange;
+	BOOL coast_penchange, cross_penchange, resolution_changed;
 };
 
 struct IntuitionBase *IntuitionBase;
@@ -228,8 +231,6 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	short y0 = _mtop(obj);
 	short x1 = x0 + _mwidth(obj);
 	short y1 = y0 + _mheight(obj);
-	int i, j, idx = 0;
-	BOOL pendown;
 
 	struct EClockVal t1, t2;
 	ULONG freq, ticks;
@@ -254,37 +255,12 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	}
 	SetAPen(rp, MUIPEN(data->coast_pen));
 
-	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
-	{
-		int count = coastline_lengths[i];
-		pendown = FALSE;
+	if (data->resolution == 0)
+		draw_coastline(rp, obj, data, data->proj_full_x, data->proj_full_y, coastline_full_lengths, COASTLINE_FULL_POLYLINE_COUNT);
+	else
+		draw_coastline(rp, obj, data, data->proj_reduced_x, data->proj_reduced_y, coastline_reduced_lengths, COASTLINE_REDUCED_POLYLINE_COUNT);
 
-		for (j = 0; j < count; j++)
-		{
-			short px = data->proj_x[idx + j];
-			short py = data->proj_y[idx + j];
-
-			if (px >= x0 && px < x1 && py >= y0 && py < y1)
-			{
-				if (!pendown)
-				{
-					Move(rp, px, py);
-					pendown = TRUE;
-				}
-				else
-				{
-					Draw(rp, px, py);
-				}
-			}
-			else
-			{
-				pendown = FALSE;
-			}
-		}
-		idx += count;
-	}
-
-	if (data->zoom_center_set) { draw_cross(rp, obj, data, 5); }
+	if (data->zoom_center_set) { draw_cross(rp, obj, data); }
 
 	if (MyTimerBase)
 	{
@@ -573,7 +549,13 @@ void read_prefs(Class *cl, Object *obj)
 	LONG *val;
 
 	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_Resolution, &val))
-		data->resolution = *val;
+	{
+		if (data->resolution != *val)
+		{
+			data->resolution = *val;
+			data->resolution_changed = TRUE;
+		}
+	}
 	else
 		data->resolution = DEFAULT_RESOLUTION;
 
@@ -606,6 +588,11 @@ void read_prefs(Class *cl, Object *obj)
 		data->pan_step = *val;
 	else
 		data->pan_step = DEFAULT_PAN_STEP;
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_CrossSize, &val))
+		data->cross_size = *val;
+	else
+		data->cross_size = DEFAULT_CROSS_SIZE;
 }
 
 /*-----------------------------------------------------------------------------
@@ -633,19 +620,15 @@ void get_map_coords(Object *obj, struct MapData *data, short *x0, short *y0, sho
 ------------------------------------------------------------------------------*/
 void project_points(Object *obj, struct MapData *data)
 {
-	short x0, y0, cx, cy;
-	int i;
-
-	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
-	data->zoom_cx = cx;
-	data->zoom_cy = cy;
-
-	for (i = 0; i < COASTLINE_TOTAL_POINTS; i++)
+	if (data->resolution == 0)
 	{
-		short bx = (short)(x0 + ((long)(coastline_points[i * 2] + 18000) * _mwidth(obj)) / 36000);
-		short by = (short)(y0 + ((long)(9000 - coastline_points[i * 2 + 1]) * _mheight(obj)) / 18000);
-		data->proj_x[i] = (short)(cx + ((long)(bx - cx) * data->zoom) / 100);
-		data->proj_y[i] = (short)(cy + ((long)(by - cy) * data->zoom) / 100);
+		project_dataset(obj, data, coastline_full_points, COASTLINE_FULL_TOTAL_POINTS,
+			data->proj_full_x, data->proj_full_y);
+	}
+	else
+	{
+		project_dataset(obj, data, coastline_reduced_points, COASTLINE_REDUCED_TOTAL_POINTS,
+			data->proj_reduced_x, data->proj_reduced_y);
 	}
 }
 
@@ -668,7 +651,7 @@ void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, sho
 /*-----------------------------------------------------------------------------
 - draw_cross
 ------------------------------------------------------------------------------*/
-void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data, short size)
+void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data)
 {
 	if (data->cross_penchange)
 	{
@@ -678,10 +661,78 @@ void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data, short si
 	}
 
 	SetAPen(rp, MUIPEN(data->cross_pen));
-	Move(rp, data->zoom_cx - size, data->zoom_cy);
-	Draw(rp, data->zoom_cx + size, data->zoom_cy);
-	Move(rp, data->zoom_cx, data->zoom_cy - size);
-	Draw(rp, data->zoom_cx, data->zoom_cy + size);
+	Move(rp, data->zoom_cx - data->cross_size, data->zoom_cy);
+	Draw(rp, data->zoom_cx + data->cross_size, data->zoom_cy);
+	Move(rp, data->zoom_cx, data->zoom_cy - data->cross_size);
+	Draw(rp, data->zoom_cx, data->zoom_cy + data->cross_size);
+}
+
+/*-----------------------------------------------------------------------------
+- draw_coastline
+------------------------------------------------------------------------------*/
+void draw_coastline(struct RastPort *rp, Object *obj, struct MapData *data,
+	const short *proj_x, const short *proj_y, const short *lengths, short linecount)
+{
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
+
+	BOOL pendown;
+	int i, j, idx = 0;
+
+	for (i = 0; i < linecount; i++)
+	{
+		int count = lengths[i];
+		pendown = FALSE;
+		
+		for (j = 0; j < count; j++)
+		{
+			short px = proj_x[idx + j];
+			short py = proj_y[idx + j];
+			
+			if (px >= x0 && px < x1 && py >= y0 && py < y1)
+			{
+				if (!pendown)
+				{
+					Move(rp, px, py);
+					pendown = TRUE;
+				}
+				else
+				{
+					Draw(rp, px, py);
+				}
+			}
+			else
+			{
+				pendown = FALSE;
+			}
+		}
+		idx += count;
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- project_dataset
+------------------------------------------------------------------------------*/
+void project_dataset(Object *obj, struct MapData *data,
+	const short *points, int total_points,
+	short *proj_x, short *proj_y)
+{
+	short x0, y0, cx, cy;
+	int i;
+
+	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
+	data->zoom_cx = cx;
+	data->zoom_cy = cy;
+
+	for (i = 0; i < total_points; i++)
+	{
+		short bx = (short)(x0 + ((long)(points[i * 2] + 18000) * _mwidth(obj)) / 36000);
+		short by = (short)(y0 + ((long)(9000 - points[i * 2 + 1]) * _mheight(obj)) / 18000);
+		proj_x[i] = (short)(cx + ((long)(bx - cx) * data->zoom) / 100);
+		proj_y[i] = (short)(cy + ((long)(by - cy) * data->zoom) / 100);
+	}
 }
 
 void DebugWrite(char *msg)

@@ -27,6 +27,7 @@ struct MCPData
 	APTR pd_cross;
 	APTR sl_zoom;
 	APTR sl_pan;
+	APTR sl_cross;
 };
 
 /******************************************************************************
@@ -115,17 +116,19 @@ LONG mConfigToGadgets(Class *cl, Object *obj, struct MUIP_Settingsgroup_ConfigTo
 	struct MCPData *data = INST_DATA(cl, obj);
 	APTR cfg = msg->configdata;
 
-	APTR res   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_Resolution);
-	APTR coast = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CoastPen);
-	APTR cross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossPen);
-	APTR zoom  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ZoomStep);
-	APTR pan   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_PanStep);
+	APTR res    = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_Resolution);
+	APTR coast  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CoastPen);
+	APTR pcross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossPen);
+	APTR zoom   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ZoomStep);
+	APTR pan    = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_PanStep);
+	APTR scross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossSize);
 
-	set(data->cy_resolution, MUIA_Cycle_Active,    res           ? *(LONG *)res  : DEFAULT_RESOLUTION);
-	set(data->pd_coast,      MUIA_Pendisplay_Spec, coast 		 ? coast         : DEFAULT_COAST_PEN);
-	set(data->pd_cross,      MUIA_Pendisplay_Spec, cross 		 ? cross         : DEFAULT_CROSS_PEN);
-	set(data->sl_zoom,       MUIA_Numeric_Value,   zoom          ? *(LONG *)zoom : DEFAULT_ZOOM_STEP);
-	set(data->sl_pan,        MUIA_Numeric_Value,   pan           ? *(LONG *)pan  : DEFAULT_PAN_STEP);
+	set(data->cy_resolution, MUIA_Cycle_Active,    res           ? *(LONG *)res    : DEFAULT_RESOLUTION);
+	set(data->pd_coast,      MUIA_Pendisplay_Spec, coast 		 ? coast           : DEFAULT_COAST_PEN);
+	set(data->pd_cross,      MUIA_Pendisplay_Spec, pcross 		 ? pcross          : DEFAULT_CROSS_PEN);
+	set(data->sl_zoom,       MUIA_Numeric_Value,   zoom          ? *(LONG *)zoom   : DEFAULT_ZOOM_STEP);
+	set(data->sl_pan,        MUIA_Numeric_Value,   pan           ? *(LONG *)pan    : DEFAULT_PAN_STEP);
+	set(data->sl_cross,		 MUIA_Numeric_Value,   scross		 ? *(LONG *)scross : DEFAULT_CROSS_SIZE);
 
 	return 0;
 }
@@ -155,6 +158,9 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 	val = xget(data->sl_pan, MUIA_Numeric_Value);
 	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_PanStep);
 
+	val = xget(data->sl_cross, MUIA_Numeric_Value);
+	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_CrossSize);
+
 	return 0;
 }
 
@@ -164,8 +170,8 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 {
 	struct MCPData *data;
-	APTR cy_resolution, pd_coast, pd_cross, sl_zoom, sl_pan;
-	static const char *res_entries[] = {"110m", "10m", NULL};
+	APTR cy_resolution, pd_coast, pd_cross, sl_zoom, sl_pan, sl_cross;
+	static const char *res_entries[] = {"Full", "Reduced", NULL};
 	static const char infotext1[] = "\033bWorldmap.mcp 11.0\033n  (31.03.2026)\n"
 									LIB_COPYRIGHT;
 	static const char infotext2[] =	"\n"
@@ -211,11 +217,19 @@ LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 		MUIA_Numeric_Value, DEFAULT_PAN_STEP,
 	TAG_END);
 
+	sl_cross = MUI_NewObject(MUIC_Slider,
+		MUIA_Slider_Horiz, TRUE,
+		MUIA_Numeric_Min, 1,
+		MUIA_Numeric_Max, 8,
+		MUIA_Numeric_Value, DEFAULT_CROSS_SIZE,
+	TAG_END);
+
 	data->cy_resolution = cy_resolution;
 	data->pd_coast = pd_coast;
 	data->pd_cross = pd_cross;
 	data->sl_zoom = sl_zoom;
 	data->sl_pan = sl_pan;
+	data->sl_cross = sl_cross;
 
 	DoMethod(obj, OM_ADDMEMBER, VGroup,
 
@@ -236,6 +250,8 @@ LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 			Child, sl_zoom,
 			Child, LLabel("Pan step:"),
 			Child, sl_pan,
+			Child, LLabel("Cross size:"),
+			Child, sl_cross,
 		End,
 
 		Child, MUI_NewObject("Crawling.mcc",

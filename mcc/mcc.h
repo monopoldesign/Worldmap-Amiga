@@ -7,14 +7,6 @@
 /******************************************************************************
 * Definitions
 *******************************************************************************/
-#define ZOOM_STEP			20
-#define PAN_STEP			500
-
-#define MAP_X0	10
-#define MAP_Y0	10
-#define MAP_W	383 - 3
-#define MAP_H	234 - 3
-
 #define MYATTR_Base			0x80420000
 
 #define MYATTR_Zoom			(MYATTR_Base + 1)
@@ -43,7 +35,9 @@ void read_prefs(Class *cl, Object *obj);
 void get_map_coords(Object *obj, struct MapData *data, short *x0, short *y0, short *cx, short *cy);
 void project_points(Object *obj, struct MapData *data);
 void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, short *lon, short *lat);
-void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data, short size);
+void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data);
+void draw_coastline(struct RastPort *rp, Object *obj, struct MapData *data, const short *proj_x, const short *proj_y, const short *lengths, short linecount);
+void project_dataset(Object *obj, struct MapData *data, const short *points, int total_points, short *proj_x, short *proj_y);
 
 void DebugWrite(char *msg);
 
