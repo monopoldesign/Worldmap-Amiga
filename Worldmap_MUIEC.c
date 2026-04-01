@@ -31,14 +31,15 @@ struct WorldmapBase
 	LONG dummy;
 };
 
-#define MN_ZOOM_IN    	1
-#define MN_ZOOM_OUT   	2
-#define MN_RESET      	3
-#define MN_QUIT       	4
-#define MN_PAN_N      	5
-#define MN_PAN_S      	6
-#define MN_PAN_W      	7
-#define MN_PAN_E      	8
+#define MN_ZOOM_IN    		1
+#define MN_ZOOM_OUT   		2
+#define MN_RESET      		3
+#define MN_QUIT       		4
+#define MN_PAN_N      		5
+#define MN_PAN_S      		6
+#define MN_PAN_W      		7
+#define MN_PAN_E      		8
+#define ID_POSITION_CHANGED 9
 
 /******************************************************************************
 * Macros
@@ -100,6 +101,10 @@ int main(void)
 				if ((MUI_RequestA(App->App, 0, 0, "Quit?", "_Yes|_No", "\33cAre you sure?", 0)) == 1)
 					running = FALSE;
 			break;
+
+			case ID_POSITION_CHANGED:
+				update_display();
+				break;
 
 			case MN_ZOOM_IN:
 				DoMethod(App->AR_map, MYMETH_ZoomIn);
@@ -305,6 +310,13 @@ struct ObjApp * CreateApp(void)
 		MUIA_Window_CloseRequest, TRUE,
 		ObjectApp->App, 2,
 		MUIM_Application_ReturnID, MUIV_Application_ReturnID_Quit
+	);
+
+	// update on Mouse-Click
+	DoMethod(ObjectApp->AR_map, MUIM_Notify,
+		MYATTR_CenterSet, MUIV_EveryTime,
+		ObjectApp->App, 2,
+		MUIM_Application_ReturnID, ID_POSITION_CHANGED
 	);
 
 	// Open Window

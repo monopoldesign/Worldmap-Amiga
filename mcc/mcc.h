@@ -7,11 +7,6 @@
 /******************************************************************************
 * Definitions
 *******************************************************************************/
-struct WorldmapBase
-{
-	struct Library base;
-};
-
 #define ZOOM_STEP			20
 #define PAN_STEP			500
 
@@ -43,9 +38,13 @@ struct WorldmapBase
 *******************************************************************************/
 LONG WorldmapDispatcher(register __a0 Class *cl, register __a2 Object *obj, register __a1 Msg msg);
 
+void read_prefs(Class *cl, Object *obj);
+
 void get_map_coords(Object *obj, struct MapData *data, short *x0, short *y0, short *cx, short *cy);
 void project_points(Object *obj, struct MapData *data);
 void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, short *lon, short *lat);
-void draw_cross(struct RastPort *rp, short x, short y, short size);
+void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data, short size);
+
+void DebugWrite(char *msg);
 
 #endif

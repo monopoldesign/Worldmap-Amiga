@@ -1,6 +1,7 @@
 #include <exec/libraries.h>
 #include <exec/memory.h>
 #include <libraries/mui.h>
+#include <mui/muiextra.h>
 #include <proto/exec.h>
 #include <pragma/muimaster_lib.h>
 #include <pragma/graphics_lib.h>
@@ -21,9 +22,11 @@ struct MUI_CustomClass *WorldMapMCP = NULL;
 
 struct MCPData
 {
+	APTR cy_resolution;
+	APTR pd_coast;
+	APTR pd_cross;
 	APTR sl_zoom;
 	APTR sl_pan;
-	APTR cb_cross;
 };
 
 /******************************************************************************
@@ -51,17 +54,9 @@ struct MUI_CustomClass * MCP_Query(register __d0 LONG which, register __a6 struc
 {
 	switch (which)
 	{
-		case 1:
-			DebugWrite("Query(1) called");
-			return WorldMapMCP;
-
-		case 2:
-			DebugWrite("Query(2) called");
-			return NULL;
-
-		case 3:
-			DebugWrite("Query(3) called");
-			return NULL;
+		case 1: return WorldMapMCP;
+		case 2: return NULL;
+		case 3: return NULL;
 	}
 	return NULL;
 }
@@ -120,13 +115,17 @@ LONG mConfigToGadgets(Class *cl, Object *obj, struct MUIP_Settingsgroup_ConfigTo
 	struct MCPData *data = INST_DATA(cl, obj);
 	APTR cfg = msg->configdata;
 
-	LONG zoom = DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ZoomStep);
-	LONG pan = DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_PanStep);
-	LONG cross = DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ShowCross);
+	APTR res   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_Resolution);
+	APTR coast = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CoastPen);
+	APTR cross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossPen);
+	APTR zoom  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ZoomStep);
+	APTR pan   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_PanStep);
 
-	set(data->sl_zoom, MUIA_Numeric_Value, zoom ? *(LONG *)zoom : DEFAULT_ZOOM_STEP);
-	set(data->sl_pan, MUIA_Numeric_Value, pan ? *(LONG *)pan : DEFAULT_PAN_STEP);
-	set(data->cb_cross, MUIA_Selected, cross ? *(LONG *)cross : DEFAULT_SHOW_CROSS);
+	set(data->cy_resolution, MUIA_Cycle_Active,    res           ? *(LONG *)res  : DEFAULT_RESOLUTION);
+	set(data->pd_coast,      MUIA_Pendisplay_Spec, coast 		 ? coast         : DEFAULT_COAST_PEN);
+	set(data->pd_cross,      MUIA_Pendisplay_Spec, cross 		 ? cross         : DEFAULT_CROSS_PEN);
+	set(data->sl_zoom,       MUIA_Numeric_Value,   zoom          ? *(LONG *)zoom : DEFAULT_ZOOM_STEP);
+	set(data->sl_pan,        MUIA_Numeric_Value,   pan           ? *(LONG *)pan  : DEFAULT_PAN_STEP);
 
 	return 0;
 }
@@ -139,15 +138,22 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 	struct MCPData *data = INST_DATA(cl, obj);
 	APTR cfg = msg->configdata;
 	LONG val;
+	struct MUI_PenSpec *ps;
+
+	val = xget(data->cy_resolution, MUIA_Cycle_Active);
+	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_Resolution);
+
+	get(data->pd_coast, MUIA_Pendisplay_Spec, &ps);
+	DoMethod(cfg, MUIM_Dataspace_Add, ps, sizeof(struct MUI_PenSpec), MUICFG_Worldmap_CoastPen);
+
+	get(data->pd_cross, MUIA_Pendisplay_Spec, &ps);
+	DoMethod(cfg, MUIM_Dataspace_Add, ps, sizeof(struct MUI_PenSpec), MUICFG_Worldmap_CrossPen);
 
 	val = xget(data->sl_zoom, MUIA_Numeric_Value);
 	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_ZoomStep);
 
 	val = xget(data->sl_pan, MUIA_Numeric_Value);
 	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_PanStep);
-
-	val = xget(data->cb_cross, MUIA_Selected);
-	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_ShowCross);
 
 	return 0;
 }
@@ -158,54 +164,102 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 {
 	struct MCPData *data;
-	APTR sl_zoom, sl_pan, cb_cross;
-
+	APTR cy_resolution, pd_coast, pd_cross, sl_zoom, sl_pan;
+	static const char *res_entries[] = {"110m", "10m", NULL};
+	static const char infotext1[] = "\033bWorldmap.mcp 11.0\033n  (31.03.2026)\n"
+									LIB_COPYRIGHT;
+	static const char infotext2[] =	"\n"
+									"A MUI Custom Class for \n"
+									"displaying a world map\n"
+									"on the Amiga.\n"
+									"Based on Natural Earth vector data.\n"
+									"Rust prototype\n"
+									LIB_COPYRIGHT
+									"\n";
+									
 	obj = (Object *)DoSuperMethodA(cl, obj, (Msg)msg);
 	if (!obj) return 0;
 
 	data = INST_DATA(cl, obj);
 
-	sl_zoom = SliderObject,
+	cy_resolution = MUI_NewObject(MUIC_Cycle,
+		MUIA_Cycle_Entries, res_entries,
+		MUIA_Cycle_Active, DEFAULT_RESOLUTION,
+	TAG_END);
+
+	pd_coast = MUI_NewObject(MUIC_Poppen,
+		MUIA_Pendisplay_Spec, "m1",
+		MUIA_Frame, MUIV_Frame_Text,
+	TAG_END);
+
+	pd_cross = MUI_NewObject(MUIC_Poppen,
+		MUIA_Pendisplay_Spec, "m1",
+		MUIA_Frame, MUIV_Frame_Text,
+	TAG_END);
+
+	sl_zoom = MUI_NewObject(MUIC_Slider,
 		MUIA_Slider_Horiz, TRUE,
 		MUIA_Numeric_Min, 5,
 		MUIA_Numeric_Max, 50,
 		MUIA_Numeric_Value, DEFAULT_ZOOM_STEP,
-	End;
+	TAG_END);
 
-	sl_pan = SliderObject,
+	sl_pan = MUI_NewObject(MUIC_Slider,
 		MUIA_Slider_Horiz, TRUE,
 		MUIA_Numeric_Min, 100,
 		MUIA_Numeric_Max, 2000,
 		MUIA_Numeric_Value, DEFAULT_PAN_STEP,
-	End;
+	TAG_END);
 
-	cb_cross = CheckMark(DEFAULT_SHOW_CROSS);
-
+	data->cy_resolution = cy_resolution;
+	data->pd_coast = pd_coast;
+	data->pd_cross = pd_cross;
 	data->sl_zoom = sl_zoom;
 	data->sl_pan = sl_pan;
-	data->cb_cross = cb_cross;
 
-	DoMethod(obj, OM_ADDMEMBER, GroupObject,
-		MUIA_Frame, MUIV_Frame_Group,
-		MUIA_FrameTitle, "Settings",
-		MUIA_Group_Horiz, FALSE,
+	DoMethod(obj, OM_ADDMEMBER, VGroup,
 
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
+		Child, MUI_MakeObject(MUIO_BarTitle, "Preview"),
+		Child, MUI_NewObject("Worldmap.mcc", TAG_END),
+		
+		Child, MUI_MakeObject(MUIO_BarTitle, "Settings"),
+
+		Child, MUI_NewObject(MUIC_Group,
+			MUIA_Group_Columns, 2,
+			Child, LLabel("Resolution:"),
+			Child, cy_resolution,
+			Child, LLabel("Coast Colour:"),
+			Child, pd_coast,
+			Child, LLabel("Cross Colour:"),
+			Child, pd_cross,
 			Child, LLabel("Zoom step:"),
 			Child, sl_zoom,
-		End,
-
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
 			Child, LLabel("Pan step:"),
 			Child, sl_pan,
 		End,
 
-		Child, GroupObject,
-			MUIA_Group_Horiz, TRUE,
-			Child, LLabel("Show cross:"),
-			Child, cb_cross,
+		Child, MUI_NewObject("Crawling.mcc",
+			TextFrame,
+			MUIA_FixHeightTxt, infotext1,
+			MUIA_Background, "m1",
+
+			Child, TextObject,
+				MUIA_Text_Copy, FALSE,
+				MUIA_Text_PreParse, "\033c",
+				MUIA_Text_Contents, infotext1,
+			End,
+
+			Child, TextObject,
+				MUIA_Text_Copy, FALSE,
+				MUIA_Text_PreParse, "\033c",
+				MUIA_Text_Contents, infotext2,
+			End,
+
+			Child, TextObject,
+				MUIA_Text_Copy, FALSE,
+				MUIA_Text_PreParse, "\033c",
+				MUIA_Text_Contents, infotext1,
+			End,
 		End,
 	End);
 

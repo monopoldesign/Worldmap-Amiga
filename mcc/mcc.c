@@ -6,8 +6,14 @@
 #include <proto/exec.h>
 #include <proto/graphics.h>
 #include <proto/timer.h>
+#include <stdio.h>
+
+#include <dos/dos.h>
+#include <clib/dos_protos.h>
+#include <pragma/dos_lib.h>
 
 #include "mcc.h"
+#include "mcp.h"
 #include "coastline2.c"
 
 #pragma libbase WorldmapBase
@@ -24,6 +30,11 @@ struct MapData
 	short zoom_center_lon;
 	short zoom_center_lat;
 	ULONG draw_time_ms;
+
+	LONG resolution, zoom_step, pan_step;
+	struct MUI_PenSpec coast_penspec, cross_penspec;
+	LONG coast_pen, cross_pen;
+	BOOL coast_penchange, cross_penchange;
 };
 
 struct IntuitionBase *IntuitionBase;
@@ -148,8 +159,17 @@ LONG mSetup(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl,obj);
 
+	char buf[16];
+	char *p = buf;
+	LONG val = data->zoom_step;
+
 	if (DoSuperMethodA(cl, obj, msg))
 	{
+		read_prefs(cl, obj);
+
+		data->coast_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->coast_penspec, 0);
+		data->cross_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->cross_penspec, 0);
+
 		data->zoom = 100;
 		data->zoom_center_set = FALSE;
 		data->zoom_center_lon = 0;
@@ -172,7 +192,11 @@ LONG mSetup(Class *cl, Object *obj, Msg msg)
 LONG mCleanup(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
+	MUI_ReleasePen(muiRenderInfo(obj), data->coast_pen);
+	MUI_ReleasePen(muiRenderInfo(obj), data->cross_pen);
 	DoMethod(_win(obj), MUIM_Window_RemEventHandler, &data->EHNode);
+
 	return DoSuperMethodA(cl, obj, msg);
 }
 
@@ -184,10 +208,10 @@ LONG mAskMinMax(Class *cl, Object *obj, struct MUIP_AskMinMax *msg)
 	DoSuperMethodA(cl, obj, (Msg)msg);
 
 	msg->MinMaxInfo->MinWidth += 100;
-	msg->MinMaxInfo->DefWidth += 400;
+	msg->MinMaxInfo->DefWidth += 200;
 	msg->MinMaxInfo->MaxWidth += MUI_MAXMAX;
-	msg->MinMaxInfo->MinHeight += 100;
-	msg->MinMaxInfo->DefHeight += 200;
+	msg->MinMaxInfo->MinHeight += 60;
+	msg->MinMaxInfo->DefHeight += 120;
 	msg->MinMaxInfo->MaxHeight += MUI_MAXMAX;
 
 	return 0;
@@ -222,7 +246,14 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
 
 	// draw Coast-Line
-	SetAPen(rp, 1);
+	if (data->coast_penchange)
+	{
+		data->coast_penchange = FALSE;
+		MUI_ReleasePen(muiRenderInfo(obj), data->coast_pen);
+		data->coast_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->coast_penspec, 0);
+	}
+	SetAPen(rp, MUIPEN(data->coast_pen));
+
 	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
 	{
 		int count = coastline_lengths[i];
@@ -253,7 +284,7 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 		idx += count;
 	}
 
-	if (data->zoom_center_set) { draw_cross(rp, data->zoom_cx, data->zoom_cy, 5); }
+	if (data->zoom_center_set) { draw_cross(rp, obj, data, 5); }
 
 	if (MyTimerBase)
 	{
@@ -287,6 +318,7 @@ LONG mHandleEvent (Class *cl, Object *obj, struct MUIP_HandleEvent *msg)
 			if (mx >= x0 && mx < x1 && my >= y0 && my < y1)
 			{
 				short lon, lat;
+
 				screen_to_lonlat(obj, data, mx, my, &lon, &lat);
 
 				if (lon >= -18000 && lon <= 18000 && lat >= -9000 && lat <= 9000)
@@ -294,12 +326,26 @@ LONG mHandleEvent (Class *cl, Object *obj, struct MUIP_HandleEvent *msg)
 					data->zoom_center_lon = lon;
 					data->zoom_center_lat = lat;
 					data->zoom_center_set = TRUE;
-					MUI_Redraw(obj, MADF_DRAWOBJECT);
+					SetAttrs(obj,
+						MYATTR_CenterLon, (LONG)lon,
+						MYATTR_CenterLat, (LONG)lat,
+						MYATTR_CenterSet, TRUE,
+					TAG_DONE);
 				}
 			}
 		}
 	}
 	return 0;
+}
+
+/*-----------------------------------------------------------------------------
+- mShow
+------------------------------------------------------------------------------*/
+LONG mShow (Class *cl, Object *obj, Msg msg)
+{
+	read_prefs(cl, obj);
+	MUI_Redraw(obj, MADF_DRAWOBJECT);
+	return DoSuperMethodA(cl, obj, (Msg)msg);
 }
 
 /*-----------------------------------------------------------------------------
@@ -345,7 +391,7 @@ LONG mSet(Class *cl, Object *obj, struct opSet *msg)
 	struct TagItem *tstate = msg->ops_AttrList;
 	BOOL redraw = FALSE;
 
-	while ((tag = NextTagItem(&tag)))
+	while ((tag = NextTagItem(&tstate)))
 	{
 		switch (tag->ti_Tag)
 		{
@@ -358,12 +404,10 @@ LONG mSet(Class *cl, Object *obj, struct opSet *msg)
 
 			case MYATTR_CenterLon:
 				data->zoom_center_lon = (short)tag->ti_Data;
-				redraw = TRUE;
 				break;
 
 			case MYATTR_CenterLat:
 				data->zoom_center_lat = (short)tag->ti_Data;
-				redraw = TRUE;
 				break;
 
 			case MYATTR_CenterSet:
@@ -383,10 +427,12 @@ LONG mSet(Class *cl, Object *obj, struct opSet *msg)
 LONG mZoomIn(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
-	data->zoom = data->zoom * (100 + ZOOM_STEP) / 100;
+
+	data->zoom = data->zoom * (100 + data->zoom_step) / 100;
 	if (data->zoom > 1600) data->zoom = 1600;
 	data->zoom_center_set = TRUE;
 	MUI_Redraw(obj, MADF_DRAWOBJECT);
+
 	return 0;
 }
 
@@ -396,10 +442,12 @@ LONG mZoomIn(Class *cl, Object *obj, Msg msg)
 LONG mZoomOut(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
-	data->zoom = data->zoom * 100 / (100 + ZOOM_STEP);
+
+	data->zoom = data->zoom * 100 / (100 + data->zoom_step);
 	if (data->zoom < 100) data->zoom = 100;
 	data->zoom_center_set = TRUE;
 	MUI_Redraw(obj, MADF_DRAWOBJECT);
+
 	return 0;
 }
 
@@ -409,11 +457,13 @@ LONG mZoomOut(Class *cl, Object *obj, Msg msg)
 LONG mReset(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
 	data->zoom = 100;
 	data->zoom_center_set = FALSE;
 	data->zoom_center_lon = 0;
 	data->zoom_center_lat = 0;
 	MUI_Redraw(obj, MADF_DRAWOBJECT);
+
 	return 0;
 }
 
@@ -423,12 +473,14 @@ LONG mReset(Class *cl, Object *obj, Msg msg)
 LONG mPanNorth(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
 	if (data->zoom_center_set)
 	{
-		data->zoom_center_lat += PAN_STEP;
+		data->zoom_center_lat += data->pan_step;
 		if (data->zoom_center_lat > 9000) data->zoom_center_lat = 9000;
 		MUI_Redraw(obj, MADF_DRAWOBJECT);
 	}
+
 	return 0;
 }
 
@@ -438,12 +490,14 @@ LONG mPanNorth(Class *cl, Object *obj, Msg msg)
 LONG mPanSouth(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
 	if (data->zoom_center_set)
 	{
-		data->zoom_center_lat -= PAN_STEP;
+		data->zoom_center_lat -= data->pan_step;
 		if (data->zoom_center_lat < -9000) data->zoom_center_lat = -9000;
 		MUI_Redraw(obj, MADF_DRAWOBJECT);
 	}
+
 	return 0;
 }
 
@@ -453,12 +507,14 @@ LONG mPanSouth(Class *cl, Object *obj, Msg msg)
 LONG mPanWest(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
 	if (data->zoom_center_set)
 	{
-		data->zoom_center_lon -= PAN_STEP;
+		data->zoom_center_lon -= data->pan_step;
 		if (data->zoom_center_lon < -18000) data->zoom_center_lon = -18000;
 		MUI_Redraw(obj, MADF_DRAWOBJECT);
 	}
+
 	return 0;
 }
 
@@ -468,12 +524,14 @@ LONG mPanWest(Class *cl, Object *obj, Msg msg)
 LONG mPanEast(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl, obj);
+
 	if (data->zoom_center_set)
 	{
-		data->zoom_center_lon += PAN_STEP;
+		data->zoom_center_lon += data->pan_step;
 		if (data->zoom_center_lon > 18000) data->zoom_center_lon = 18000;
 		MUI_Redraw(obj, MADF_DRAWOBJECT);
 	}
+
 	return 0;
 }
 
@@ -489,6 +547,7 @@ LONG WorldmapDispatcher(register __a0 Class *cl, register __a2 Object *obj, regi
 		case MUIM_AskMinMax:	return mAskMinMax(cl, obj, (struct MUIP_AskMinMax *)msg);
 		case MUIM_Draw:			return mDraw(cl, obj, (struct MUIP_Draw *)msg);
 		case MUIM_HandleEvent:	return mHandleEvent(cl, obj, (struct MUIP_HandleEvent *)msg);
+		case MUIM_Show:			return mShow(cl, obj, msg);
 		case OM_GET:			return mGet(cl, obj, (struct opGet *)msg);
 		case OM_SET:			return mSet(cl, obj, (struct opSet *)msg);
 		case MYMETH_ZoomIn:		return mZoomIn(cl, obj, msg);
@@ -506,23 +565,67 @@ LONG WorldmapDispatcher(register __a0 Class *cl, register __a2 Object *obj, regi
 * Private Functions
 *******************************************************************************/
 /*-----------------------------------------------------------------------------
+- read_prefs
+------------------------------------------------------------------------------*/
+void read_prefs(Class *cl, Object *obj)
+{
+	struct MapData *data = INST_DATA(cl, obj);
+	LONG *val;
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_Resolution, &val))
+		data->resolution = *val;
+	else
+		data->resolution = DEFAULT_RESOLUTION;
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_CoastPen, &val))
+	{
+		data->coast_penspec = *(struct MUI_PenSpec *)val;
+		data->coast_penchange = TRUE;
+	}
+	else
+	{
+		DoMethod(obj, MUIM_KillNotify, MUICFG_Worldmap_CoastPen);
+	}
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_CrossPen, &val))
+	{
+		data->cross_penspec = *(struct MUI_PenSpec *)val;
+		data->cross_penchange = TRUE;
+	}
+	else
+	{
+		DoMethod(obj, MUIM_KillNotify, MUICFG_Worldmap_CrossPen, &val);
+	}
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_ZoomStep, &val))
+		data->zoom_step = *val;
+	else
+		data->zoom_step = DEFAULT_ZOOM_STEP;
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_PanStep, &val))
+		data->pan_step = *val;
+	else
+		data->pan_step = DEFAULT_PAN_STEP;
+}
+
+/*-----------------------------------------------------------------------------
 - get_map_coords
 ------------------------------------------------------------------------------*/
 void get_map_coords(Object *obj, struct MapData *data, short *x0, short *y0, short *cx, short *cy)
 {
-    *x0 = _mleft(obj);
-    *y0 = _mtop(obj);
+	*x0 = _mleft(obj);
+	*y0 = _mtop(obj);
 
-    if (data->zoom_center_set)
-    {
-        *cx = (short)(*x0 + ((long)(data->zoom_center_lon + 18000) * _mwidth(obj)) / 36000);
-        *cy = (short)(*y0 + ((long)(9000 - data->zoom_center_lat) * _mheight(obj)) / 18000);
-    }
-    else
-    {
-        *cx = *x0 + _mwidth(obj) / 2;
-        *cy = *y0 + _mheight(obj) / 2;
-    }
+	if (data->zoom_center_set)
+	{
+		*cx = (short)(*x0 + ((long)(data->zoom_center_lon + 18000) * _mwidth(obj)) / 36000);
+		*cy = (short)(*y0 + ((long)(9000 - data->zoom_center_lat) * _mheight(obj)) / 18000);
+	}
+	else
+	{
+		*cx = *x0 + _mwidth(obj) / 2;
+		*cy = *y0 + _mheight(obj) / 2;
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -565,11 +668,41 @@ void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, sho
 /*-----------------------------------------------------------------------------
 - draw_cross
 ------------------------------------------------------------------------------*/
-void draw_cross(struct RastPort *rp, short x, short y, short size)
+void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data, short size)
 {
-	SetAPen(rp, 2);
-	Move(rp, x - size, y);
-	Draw(rp, x + size, y);
-	Move(rp, x, y - size);
-	Draw(rp, x, y + size);
+	if (data->cross_penchange)
+	{
+		data->cross_penchange = FALSE;
+		MUI_ReleasePen(muiRenderInfo(obj), data->cross_pen);
+		data->cross_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->cross_penspec, 0);
+	}
+
+	SetAPen(rp, MUIPEN(data->cross_pen));
+	Move(rp, data->zoom_cx - size, data->zoom_cy);
+	Draw(rp, data->zoom_cx + size, data->zoom_cy);
+	Move(rp, data->zoom_cx, data->zoom_cy - size);
+	Draw(rp, data->zoom_cx, data->zoom_cy + size);
+}
+
+void DebugWrite(char *msg)
+{
+	struct DosLibrary *DOSBase;
+	BPTR f;
+	LONG len = 0;
+	
+	/* Count string length manually */
+	while (msg[len]) len++;
+	
+	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 37);
+	if (!DOSBase) return;
+	
+	f = Open("T:worldmap_debug.txt", MODE_READWRITE);
+	if (!f) f = Open("T:worldmap_debug.txt", MODE_NEWFILE);
+	if (f)
+	{
+		Seek(f, 0, OFFSET_END);
+		Write(f, msg, len);
+		Close(f);
+	}
+	CloseLibrary((struct Library *)DOSBase);
 }
