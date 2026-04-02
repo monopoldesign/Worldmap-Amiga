@@ -6,10 +6,6 @@
 #include <pragma/muimaster_lib.h>
 #include <pragma/graphics_lib.h>
 
-#include <dos/dos.h>
-#include <clib/dos_protos.h>
-#include <pragma/dos_lib.h>
-
 #include "mcp.h"
 
 #pragma libbase WorldmapBase
@@ -303,32 +299,12 @@ LONG WorldmapDispatcher(register __a0 Class *cl, register __a2 Object *obj, regi
 	}
 }
 
+/*-----------------------------------------------------------------------------
+- xget
+------------------------------------------------------------------------------*/
 ULONG xget(Object *obj, ULONG attr)
 {
 	ULONG val = 0;
 	get(obj, attr, &val);
 	return val;
-}
-
-void DebugWrite(char *msg)
-{
-	struct DosLibrary *DOSBase;
-	BPTR f;
-	LONG len = 0;
-	
-	/* Count string length manually */
-	while (msg[len]) len++;
-	
-	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 37);
-	if (!DOSBase) return;
-	
-	f = Open("T:worldmap_debug.txt", MODE_READWRITE);
-	if (!f) f = Open("T:worldmap_debug.txt", MODE_NEWFILE);
-	if (f)
-	{
-		Seek(f, 0, OFFSET_END);
-		Write(f, msg, len);
-		Close(f);
-	}
-	CloseLibrary((struct Library *)DOSBase);
 }

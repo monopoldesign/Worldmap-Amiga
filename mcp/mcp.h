@@ -40,8 +40,6 @@ struct WorldmapBase
 struct MUI_CustomClass * MCP_Query(register __d0 LONG which, register __a6 struct WorldmapBase *base);
 
 LONG WorldmapDispatcher(register __a0 Class *cl, register __a2 Object *obj, register __a1 Msg msg);
-
 ULONG xget(Object *obj, ULONG attr);
-void DebugWrite(char *msg);
 
 #endif

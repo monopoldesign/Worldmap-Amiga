@@ -8,10 +8,6 @@
 #include <proto/timer.h>
 #include <stdio.h>
 
-#include <dos/dos.h>
-#include <clib/dos_protos.h>
-#include <pragma/dos_lib.h>
-
 #include "mcc.h"
 #include "mcp.h"
 #include "coastline_reduced.c"
@@ -733,27 +729,4 @@ void project_dataset(Object *obj, struct MapData *data,
 		proj_x[i] = (short)(cx + ((long)(bx - cx) * data->zoom) / 100);
 		proj_y[i] = (short)(cy + ((long)(by - cy) * data->zoom) / 100);
 	}
-}
-
-void DebugWrite(char *msg)
-{
-	struct DosLibrary *DOSBase;
-	BPTR f;
-	LONG len = 0;
-	
-	/* Count string length manually */
-	while (msg[len]) len++;
-	
-	DOSBase = (struct DosLibrary *)OpenLibrary("dos.library", 37);
-	if (!DOSBase) return;
-	
-	f = Open("T:worldmap_debug.txt", MODE_READWRITE);
-	if (!f) f = Open("T:worldmap_debug.txt", MODE_NEWFILE);
-	if (f)
-	{
-		Seek(f, 0, OFFSET_END);
-		Write(f, msg, len);
-		Close(f);
-	}
-	CloseLibrary((struct Library *)DOSBase);
 }

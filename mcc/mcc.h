@@ -39,6 +39,4 @@ void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data);
 void draw_coastline(struct RastPort *rp, Object *obj, struct MapData *data, const short *proj_x, const short *proj_y, const short *lengths, short linecount);
 void project_dataset(Object *obj, struct MapData *data, const short *points, int total_points, short *proj_x, short *proj_y);
 
-void DebugWrite(char *msg);
-
 #endif
