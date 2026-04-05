@@ -25,8 +25,7 @@ int Gadget00Clicked( void )
 	/* routine when gadget "N" is clicked. */
 	zoom_center_lat += PAN_STEP;
 	if (zoom_center_lat > 9000) zoom_center_lat = 9000;
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -37,7 +36,7 @@ int Gadget10Clicked( void )
 	zoom_center_lat -= PAN_STEP;
 	if (zoom_center_lat < -9000) zoom_center_lat = -9000;
 	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -47,8 +46,7 @@ int Gadget20Clicked( void )
 	/* routine when gadget "W" is clicked. */
 	zoom_center_lon -= PAN_STEP;
 	if (zoom_center_lon < -18000) zoom_center_lon = -18000;
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -58,8 +56,7 @@ int Gadget30Clicked( void )
 	/* routine when gadget "E" is clicked. */
 	zoom_center_lon += PAN_STEP;
 	if (zoom_center_lon > 18000) zoom_center_lon = 18000;
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -71,8 +68,7 @@ int Gadget40Clicked( void )
 	if (zoom > 1600) zoom = 1600;
 	if (!zoom_center_set) zoom_center_set = TRUE;
 	update_zoom_display();
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -83,8 +79,7 @@ int Gadget50Clicked( void )
 	zoom = zoom * 100 / (100 + ZOOM_STEP);
 	if (zoom < 100) zoom = 100;
 	update_zoom_display();
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -97,8 +92,7 @@ int Gadget60Clicked( void )
 	zoom_center_lon = 0;
 	zoom_center_lat = 0;
 	update_zoom_display();
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	update_gadgets();
 	return TRUE;
 }
@@ -112,8 +106,7 @@ int WorldmapCloseWindow( void )
 int WorldmapNewSize( void )
 {
 	/* routine for "IDCMP_NEWSIZE". */
-	project_points(WorldmapWnd);
-	draw(WorldmapWnd);
+	draw_map(WorldmapWnd);
 	return TRUE;
 }
 
@@ -136,4 +129,3 @@ int WorldmapRawKey( void )
 	}
 	return TRUE;
 }
-

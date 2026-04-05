@@ -77,5 +77,4 @@ extern void CloseWorldmapWindow( void );
 
 extern void update_gadgets(void);
 extern void screen_to_lonlat(struct Window *win, short mx, short my, short *lon, short *lat);
-extern void draw(struct Window *win);
-extern void project_points(struct Window *win);
+extern void draw_map(struct Window *win);

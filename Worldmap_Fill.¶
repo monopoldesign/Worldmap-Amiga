@@ -40,16 +40,6 @@ Run
 0 0 0 "" ""
 Settings (End)
 File
-1 "Worldmap.c"
-"Worldmap.c"
-"Transfer:dev/Worldmap/gui.h"
-"Transfer:dev/Worldmap/coastline2.c"
-"Transfer:dev/Worldmap/worldmap_mcc.h"
-Storm Shell Project (Dependencies)
-"objects/Worldmap.o" "objects/Worldmap.debug"
-""
-"objects/Worldmap.o" "objects/Worldmap.debug"
-File
 1 "gui.c"
 "gui.c"
 "Transfer:dev/Worldmap/gui.h"
@@ -67,6 +57,17 @@ Storm Shell Project (Dependencies)
 "objects/gui_temp.o" "objects/gui_temp.debug"
 ""
 "objects/gui_temp.o" "objects/gui_temp.debug"
+File
+1 "Worldmap_Fill.c"
+"Worldmap_Fill.c"
+"Transfer:dev/Worldmap/gui.h"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
+"Transfer:dev/Worldmap/coastline2.c"
+"Transfer:dev/Worldmap/land_triangles2.c"
+Storm Shell Project (Dependencies)
+"objects/Worldmap_Fill.o" "objects/Worldmap_Fill.debug"
+""
+"objects/Worldmap_Fill.o" "objects/Worldmap_Fill.debug"
 Section
 1 1 100
 File
@@ -83,32 +84,34 @@ Storm Shell Project (Dependencies)
 ""
 File
 2 "map.h"
+"map.h"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 Section
 2 1 95
 File
-21 "coastline.c"
-"coastline.c"
+21 "coastline2.c"
+"coastline2.c"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
-21 "coastline2.c"
-"coastline2.c"
+21 "land_triangles2.c"
+"land_triangles2.c"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 Section
 21 1 87
 File
-10 "Worldmap"
+10 "Worldmap_Fill"
 "Worldmap"
+"Worldmap_Fill"
 Storm Shell Project (Dependencies)
 "" ""
 ""
-"Worldmap.link"
+"Worldmap_Fill.link"
 Section
 10 1 40
 File

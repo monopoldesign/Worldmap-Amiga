@@ -178,8 +178,7 @@ int HandleWorldmapIDCMP( void )
 					{
 						screen_to_lonlat(WorldmapWnd, mx, my, &zoom_center_lon, &zoom_center_lat);
 						zoom_center_set = TRUE;
-						project_points(WorldmapWnd);
-						draw(WorldmapWnd);
+						draw_map(WorldmapWnd);
 						update_gadgets();
 					}
 				}
@@ -227,7 +226,7 @@ int OpenWorldmapWindow( void )
 				WA_Flags,	WFLG_DRAGBAR|WFLG_DEPTHGADGET|WFLG_CLOSEGADGET|WFLG_SMART_REFRESH|WFLG_ACTIVATE|WFLG_RMBTRAP,
 				WA_Gadgets,	WorldmapGList,
 				WA_Title,	WorldmapWdt,
-				WA_ScreenTitle,	"GadToolsBox V2.0b � 1991-1993",
+				WA_ScreenTitle,	"Worldmap (C)2026 M.Volkel",
 				WA_PubScreen,	Scr,
 				TAG_DONE )))
 	return( 4L );

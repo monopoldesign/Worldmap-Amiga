@@ -12,8 +12,8 @@
 
 #define MAP_X0	10
 #define MAP_Y0	10
-#define MAP_W	383 - 3
-#define MAP_H	234 - 3
+#define MAP_W	383 - 1
+#define MAP_H	234 - 1
 
 #define MYATTR_Base			0x80420000
 
