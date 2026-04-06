@@ -111,46 +111,6 @@ void project_triangles(struct Window *win)
 	x1 = x0 + MAP_W - 1;
 	y1 = y0 + MAP_H - 1;
 
-	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
-	{
-		int idx = i * 3;
-		short ax, ay, bx, by, cx2, cy2;
-
-		ax  = (short)(x0 + ((long)(land_triangles[idx * 2] + 18000) * MAP_W) / 36000);
-		ay  = (short)(y0 + ((long)(9000 - land_triangles[idx * 2 + 1]) * MAP_H) / 18000);
-		bx  = (short)(x0 + ((long)(land_triangles[idx * 2 + 2] + 18000) * MAP_W) / 36000);
-		by  = (short)(y0 + ((long)(9000 - land_triangles[idx * 2 + 3]) * MAP_H) / 18000);
-		cx2 = (short)(x0 + ((long)(land_triangles[idx * 2 + 4] + 18000) * MAP_W) / 36000);
-		cy2 = (short)(y0 + ((long)(9000 - land_triangles[idx * 2 + 5]) * MAP_H) / 18000);
-
-		proj_tri_x[idx]     = (short)(cx + ((long)(ax - cx) * zoom) / 100);
-		proj_tri_y[idx]     = (short)(cy + ((long)(ay - cy) * zoom) / 100);
-		proj_tri_x[idx + 1] = (short)(cx + ((long)(bx - cx) * zoom) / 100);
-		proj_tri_y[idx + 1] = (short)(cy + ((long)(by - cy) * zoom) / 100);
-		proj_tri_x[idx + 2] = (short)(cx + ((long)(cx2 - cx) * zoom) / 100);
-		proj_tri_y[idx + 2] = (short)(cy + ((long)(cy2 - cy) * zoom) / 100);
-
-		if (proj_tri_y[idx]     > y1) { proj_tri_y[idx]     = y1; }
-		if (proj_tri_y[idx + 1] > y1) { proj_tri_y[idx + 1] = y1; }
-		if (proj_tri_y[idx + 2] > y1) { proj_tri_y[idx + 2] = y1; }
-
-		proj_tri_visible[i] = TRUE;
-		if (proj_tri_x[idx] < x0 && proj_tri_x[idx + 1] < x0 && proj_tri_x[idx + 2] < x0) { proj_tri_visible[i] = FALSE; }
-		if (proj_tri_x[idx] > x1 && proj_tri_x[idx + 1] > x1 && proj_tri_x[idx + 2] > x1) { proj_tri_visible[i] = FALSE; }
-		if (proj_tri_y[idx] < y0 && proj_tri_y[idx + 1] < y0 && proj_tri_y[idx + 2] < y0) { proj_tri_visible[i] = FALSE; }
-	}
-}
-
-void project_triangles2(struct Window *win)
-{
-	short x0, y0, cx, cy;
-	short x1, y1;
-	int i;
-
-	get_map_coords(win, &x0, &y0, &cx, &cy);
-	x1 = x0 + MAP_W - 1;
-	y1 = y0 + MAP_H - 1;
-
 	for (i = 0; i < LAND_TRIANGLE_COUNT * 3; i++)
 	{
 		short bx = (short)(x0 + ((long)(land_triangles[i * 2] + 18000) * MAP_W) / 36000);

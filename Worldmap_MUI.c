@@ -7,11 +7,13 @@
 #include <pragma/muimaster_lib.h>
 #include <proto/exec.h>
 #include <proto/graphics.h>
+#include <proto/layers.h>
 #include <proto/timer.h>
 #include <stdio.h>
 
 #include "worldmap_mcc.h"
-#include "coastline2.c"
+#include "coastline.c"
+#include "land_triangles.c"
 
 /******************************************************************************
 * Definitions
@@ -48,8 +50,12 @@ void DisposeApp(struct ObjApp * ObjectApp);
 
 void get_map_coords(short *x0, short *y0, short *cx, short *cy);
 void project_points(void);
+void project_triangles(void);
 void screen_to_lonlat(short mx, short my, short *lon, short *lat);
 void draw_cross(struct RastPort *rp, short x, short y, short size);
+void clear_map(void);
+void draw_coast(void);
+void draw_fill(void);
 void draw_map(void);
 void update_display(void);
 
@@ -71,6 +77,16 @@ short zoom_cy         = 0;
 short proj_x[COASTLINE_TOTAL_POINTS];
 short proj_y[COASTLINE_TOTAL_POINTS];
 
+short proj_tri_x[LAND_TRIANGLE_COUNT * 3];
+short proj_tri_y[LAND_TRIANGLE_COUNT * 3];
+BOOL proj_tri_visible[LAND_TRIANGLE_COUNT];
+
+#define MAX_VECTORS 6
+struct AreaInfo MyAreaInfo;
+struct TmpRas MyTmpRas;
+PLANEPTR TmpRasBuffer = NULL;
+WORD AreaBuffer[MAX_VECTORS * 5];	// 5 words per vector
+
 char lon_buf[16];
 char lat_buf[16];
 char zoom_buf[8];
@@ -88,6 +104,8 @@ short last_h = 0;
 ------------------------------------------------------------------------------*/
 int main(void)
 {
+	struct RastPort *rp;
+	APTR area;
 	BOOL running = TRUE;
 	ULONG signal;
 	BOOL needs_draw = FALSE;
@@ -102,8 +120,17 @@ int main(void)
 		end();
 	}
 
-	project_points();
-	draw_map();
+	InitArea(&MyAreaInfo, AreaBuffer, MAX_VECTORS);
+	TmpRasBuffer = AllocRaster(1280, 512);
+	InitTmpRas(&MyTmpRas, TmpRasBuffer, RASSIZE(1280, 512));
+
+	area = App->AR_map;
+	rp = _rp(area);
+	rp->TmpRas = &MyTmpRas;
+	rp->AreaInfo = &MyAreaInfo;
+
+	//project_points();
+	//draw_map();
 
 	while (running)
 	{
@@ -196,7 +223,6 @@ int main(void)
 
 		if (needs_draw)
 		{
-			project_points();
 			draw_map();
 			update_display();
 		}
@@ -253,19 +279,19 @@ struct ObjApp * CreateApp(void)
 
 	static struct NewMenu MenuData[] =
 	{
-	    { NM_TITLE, "Map",          0,  0, 0, (APTR)0          },
-	    { NM_ITEM,  "Zoom In",     "I", 0, 0, (APTR)MN_ZOOM_IN  },
-	    { NM_ITEM,  "Zoom Out",    "O", 0, 0, (APTR)MN_ZOOM_OUT },
-	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
-	    { NM_ITEM,  "Reset",       "R", 0, 0, (APTR)MN_RESET    },
-	    { NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
-	    { NM_ITEM,  "Quit",        "Q", 0, 0, (APTR)MN_QUIT     },
-	    { NM_TITLE, "Pan",          0,  0, 0, (APTR)0           },
-	    { NM_ITEM,  "North",       "N", 0, 0, (APTR)MN_PAN_N    },
-	    { NM_ITEM,  "South",       "S", 0, 0, (APTR)MN_PAN_S    },
-	    { NM_ITEM,  "West",        "W", 0, 0, (APTR)MN_PAN_W    },
-	    { NM_ITEM,  "East",        "E", 0, 0, (APTR)MN_PAN_E    },
-	    { NM_END,   NULL,           0,  0, 0, (APTR)0           },
+		{ NM_TITLE, "Map",          0,  0, 0, (APTR)0          },
+		{ NM_ITEM,  "Zoom In",     "I", 0, 0, (APTR)MN_ZOOM_IN  },
+		{ NM_ITEM,  "Zoom Out",    "O", 0, 0, (APTR)MN_ZOOM_OUT },
+		{ NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
+		{ NM_ITEM,  "Reset",       "R", 0, 0, (APTR)MN_RESET    },
+		{ NM_ITEM,  NM_BARLABEL,    0,  0, 0, (APTR)0           },
+		{ NM_ITEM,  "Quit",        "Q", 0, 0, (APTR)MN_QUIT     },
+		{ NM_TITLE, "Pan",          0,  0, 0, (APTR)0           },
+		{ NM_ITEM,  "North",       "N", 0, 0, (APTR)MN_PAN_N    },
+		{ NM_ITEM,  "South",       "S", 0, 0, (APTR)MN_PAN_S    },
+		{ NM_ITEM,  "West",        "W", 0, 0, (APTR)MN_PAN_W    },
+		{ NM_ITEM,  "East",        "E", 0, 0, (APTR)MN_PAN_E    },
+		{ NM_END,   NULL,           0,  0, 0, (APTR)0           },
 	};
 
 	if (!(ObjectApp = AllocVec(sizeof(struct ObjApp), MEMF_CLEAR)))
@@ -385,19 +411,19 @@ void get_map_coords(short *x0, short *y0, short *cx, short *cy)
 {
 	APTR area = App->AR_map;
 
-    *x0 = _mleft(area);
-    *y0 = _mtop(area);
+	*x0 = _mleft(area);
+	*y0 = _mtop(area);
 
-    if (zoom_center_set)
-    {
-        *cx = (short)(*x0 + ((long)(zoom_center_lon + 18000) * _mwidth(area)) / 36000);
-        *cy = (short)(*y0 + ((long)(9000 - zoom_center_lat) * _mheight(area)) / 18000);
-    }
-    else
-    {
-        *cx = *x0 + _mwidth(area) / 2;
-        *cy = *y0 + _mheight(area) / 2;
-    }
+	if (zoom_center_set)
+	{
+		*cx = (short)(*x0 + ((long)(zoom_center_lon + 18000) * _mwidth(area)) / 36000);
+		*cy = (short)(*y0 + ((long)(9000 - zoom_center_lat) * _mheight(area)) / 18000);
+	}
+	else
+	{
+		*cx = *x0 + _mwidth(area) / 2;
+		*cy = *y0 + _mheight(area) / 2;
+	}
 }
 
 /*-----------------------------------------------------------------------------
@@ -419,6 +445,51 @@ void project_points(void)
 		short by = (short)(y0 + ((long)(9000 - coastline_points[i * 2 + 1]) * _mheight(area)) / 18000);
 		proj_x[i] = (short)(cx + ((long)(bx - cx) * zoom) / 100);
 		proj_y[i] = (short)(cy + ((long)(by - cy) * zoom) / 100);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void project_triangles()
+{
+	APTR area = App->AR_map;
+	short x0, y0, cx, cy;
+	short x1, y1;
+	int i;
+
+	get_map_coords(&x0, &y0, &cx, &cy);
+	x1 = x0 + _mwidth(area) - 1;
+	y1 = y0 + _mheight(area) - 1;
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT * 3; i++)
+	{
+		short bx = (short)(x0 + ((long)(land_triangles[i * 2] + 18000) * _mwidth(area)) / 36000);
+		short by = (short)(y0 + ((long)(9000 - land_triangles[i * 2 + 1]) * _mheight(area)) / 18000);
+		long px = (long)(cx + ((long)(bx - cx) * zoom) / 100);
+		long py = (long)(cy + ((long)(by - cy) * zoom) / 100);
+
+		if (px < -30000) { px = -30000; }
+		if (px >  30000) { px =  30000; }
+		if (py < -30000) { py = -30000; }
+		if (px >  30000) { py =  30000; }
+
+		proj_tri_x[i] = (short)px;
+		proj_tri_y[i] = (short)py;
+	}
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		short ax  = proj_tri_x[idx],     ay  = proj_tri_y[idx];
+		short bx  = proj_tri_x[idx + 1], by  = proj_tri_y[idx + 1];
+		short cx2 = proj_tri_x[idx + 2], cy2 = proj_tri_y[idx + 2];
+
+		proj_tri_visible[i] = TRUE;
+		if (ax < x0 && bx < x0 && cx2 < x0) { proj_tri_visible[i] = FALSE; }
+		if (ax > x1 && bx > x1 && cx2 > x1) { proj_tri_visible[i] = FALSE; }
+		if (ay < y0 && by < y0 && cy2 < y0) { proj_tri_visible[i] = FALSE; }
 	}
 }
 
@@ -454,7 +525,23 @@ void draw_cross(struct RastPort *rp, short x, short y, short size)
 /*-----------------------------------------------------------------------------
 - DisposeApp()
 ------------------------------------------------------------------------------*/
-void draw_map(void)
+void clear_map(void)
+{
+	APTR area = App->AR_map;
+	struct RastPort *rp = _rp(area);
+	short x0 = _mleft(area);
+	short y0 = _mtop(area);
+	short x1 = x0 + _mwidth(area);
+	short y1 = y0 + _mheight(area);
+
+	SetAPen(rp, 0);
+	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_coast(void)
 {
 	APTR area = App->AR_map;
 	struct RastPort *rp = _rp(area);
@@ -465,18 +552,6 @@ void draw_map(void)
 	int i, j, idx = 0;
 	BOOL pendown;
 
-	struct EClockVal t1, t2;
-	ULONG freq;
-	ULONG ticks;
-	ULONG ms;
-
-	freq = ReadEClock(&t1);
-
-	// clear Window
-	SetAPen(rp, 0);
-	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
-
-	// draw Coast-Line
 	SetAPen(rp, 1);
 	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
 	{
@@ -507,8 +582,78 @@ void draw_map(void)
 		}
 		idx += count;
 	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_fill(void)
+{
+	APTR area = App->AR_map;
+	struct RastPort *rp = _rp(area);
+	int i;
+
+	SetAPen(rp, 3);
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		if (!proj_tri_visible[i]) { continue; }
+
+		AreaMove(rp, proj_tri_x[idx]    , proj_tri_y[idx]);
+		AreaDraw(rp, proj_tri_x[idx + 1], proj_tri_y[idx + 1]);
+		AreaDraw(rp, proj_tri_x[idx + 2], proj_tri_y[idx + 2]);
+		AreaEnd(rp);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_map(void)
+{
+	APTR area = App->AR_map;
+	struct Window *win = _window(area);
+	struct RastPort *rp = _rp(area);
+	short x0 = _mleft(area);
+	short y0 = _mtop(area);
+	short x1 = x0 + _mwidth(area);
+	short y1 = y0 + _mheight(area);
+	short cx, cy;
+
+	struct Region *clip;
+	struct Region *old_clip;
+	struct Rectangle rect;
+
+	struct EClockVal t1, t2;
+	ULONG freq, ticks, ms;
+
+	freq = ReadEClock(&t1);
+
+	// set Clipping
+	get_map_coords(&x0, &y0, &cx, &cy);
+
+	rect.MinX = x0;
+	rect.MinY = y0;
+	rect.MaxX = x0 + _mwidth(area) - 1;
+	rect.MaxY = y0 + _mheight(area) - 1;
+
+	clip = NewRegion();
+	OrRectRegion(clip, &rect);
+	old_clip = InstallClipRegion(win->WLayer, clip);
+
+	project_points();
+	project_triangles();
+	clear_map();
+	draw_fill();
+	draw_coast();
 
 	if (zoom_center_set) { draw_cross(rp, zoom_cx, zoom_cy, 5); }
+
+	// Remove Clipping
+	InstallClipRegion(win->WLayer, old_clip);
+	DisposeRegion(clip);
 
 	ReadEClock(&t2);
 
