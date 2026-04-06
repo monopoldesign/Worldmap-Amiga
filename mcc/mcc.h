@@ -34,9 +34,14 @@ void read_prefs(Class *cl, Object *obj);
 
 void get_map_coords(Object *obj, struct MapData *data, short *x0, short *y0, short *cx, short *cy);
 void project_points(Object *obj, struct MapData *data);
+void project_dataset(Object *obj, struct MapData *data, const short *points, int total_points, short *proj_x, short *proj_y);
+void project_triangles(Object *obj, struct MapData *data);
 void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, short *lon, short *lat);
+
+void clear_map(Object *obj, struct MapData *data);
 void draw_cross(struct RastPort *rp, Object *obj, struct MapData *data);
 void draw_coastline(struct RastPort *rp, Object *obj, struct MapData *data, const short *proj_x, const short *proj_y, const short *lengths, short linecount);
-void project_dataset(Object *obj, struct MapData *data, const short *points, int total_points, short *proj_x, short *proj_y);
+void draw_fill(struct RastPort *rp, Object *obj, struct MapData *data);
+void draw_map(Object *obj, struct MapData *data);
 
 #endif

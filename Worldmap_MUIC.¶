@@ -41,6 +41,10 @@ Run
 Settings (End)
 File
 1 "Worldmap_MUIC.c"
+"Worldmap_MUIC.c"
+"Transfer:dev/Worldmap/worldmap_mcc.h"
+"Transfer:dev/Worldmap/coastline.c"
+"Transfer:dev/Worldmap/land_triangles.c"
 Storm Shell Project (Dependencies)
 "objects/Worldmap_MUIC.o" "objects/Worldmap_MUIC.debug"
 ""
@@ -48,7 +52,30 @@ Storm Shell Project (Dependencies)
 Section
 1 1 100
 File
+2 "worldmap_mcc.h"
+"worldmap_mcc.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+2 1 95
+File
+21 "coastline.c"
+"coastline.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+21 "land_triangles.c"
+"land_triangles.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+Section
+21 1 87
+File
 10 "Worldmap_MUIC"
+"Worldmap_MUIC"
 Storm Shell Project (Dependencies)
 "" ""
 ""
@@ -57,11 +84,13 @@ Section
 10 1 40
 File
 5 "storm.lib"
+"storm.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""
 File
 5 "amiga.lib"
+"amiga.lib"
 Storm Shell Project (Dependencies)
 "" ""
 ""

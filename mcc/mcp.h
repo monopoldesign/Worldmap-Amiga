@@ -14,13 +14,17 @@ struct WorldmapBase
 #define MUICFG_Worldmap_Resolution		0x80420201UL
 #define MUICFG_Worldmap_CoastPen		0x80420202UL
 #define MUICFG_Worldmap_CrossPen		0x80420203UL
-#define MUICFG_Worldmap_ZoomStep		0x80420204UL
-#define MUICFG_Worldmap_PanStep			0x80420205UL
-#define MUICFG_Worldmap_CrossSize		0x80420206UL
+#define MUICFG_Worldmap_BackgroundPen	0x80420204UL
+#define MUICFG_Worldmap_LandPen			0x80420205UL
+#define MUICFG_Worldmap_ZoomStep		0x80420206UL
+#define MUICFG_Worldmap_PanStep			0x80420207UL
+#define MUICFG_Worldmap_CrossSize		0x80420208UL
 
 #define DEFAULT_RESOLUTION		0
 #define DEFAULT_COAST_PEN		"m1"
 #define DEFAULT_CROSS_PEN		"m2"
+#define DEFAULT_BACKGROUND_PEN	"m3"
+#define DEFAULT_LAND_PEN		"m4"
 #define DEFAULT_ZOOM_STEP		20
 #define DEFAULT_PAN_STEP		500
 #define DEFAULT_CROSS_SIZE		5

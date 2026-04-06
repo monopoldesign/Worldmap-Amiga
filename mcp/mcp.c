@@ -21,6 +21,8 @@ struct MCPData
 	APTR cy_resolution;
 	APTR pd_coast;
 	APTR pd_cross;
+	APTR pd_background;
+	APTR pd_land;
 	APTR sl_zoom;
 	APTR sl_pan;
 	APTR sl_cross;
@@ -113,15 +115,19 @@ LONG mConfigToGadgets(Class *cl, Object *obj, struct MUIP_Settingsgroup_ConfigTo
 	APTR cfg = msg->configdata;
 
 	APTR res    = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_Resolution);
-	APTR coast  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CoastPen);
+	APTR pcoast  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CoastPen);
 	APTR pcross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossPen);
+	APTR pback  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_BackgroundPen);
+	APTR pland  = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_LandPen);
 	APTR zoom   = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_ZoomStep);
 	APTR pan    = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_PanStep);
 	APTR scross = (APTR)DoMethod(cfg, MUIM_Dataspace_Find, MUICFG_Worldmap_CrossSize);
 
 	set(data->cy_resolution, MUIA_Cycle_Active,    res           ? *(LONG *)res    : DEFAULT_RESOLUTION);
-	set(data->pd_coast,      MUIA_Pendisplay_Spec, coast 		 ? coast           : DEFAULT_COAST_PEN);
+	set(data->pd_coast,      MUIA_Pendisplay_Spec, pcoast 		 ? pcoast          : DEFAULT_COAST_PEN);
 	set(data->pd_cross,      MUIA_Pendisplay_Spec, pcross 		 ? pcross          : DEFAULT_CROSS_PEN);
+	set(data->pd_background, MUIA_Pendisplay_Spec, pback		 ? pback		   : DEFAULT_BACKGROUND_PEN);
+	set(data->pd_land,       MUIA_Pendisplay_Spec, pland		 ? pland		   : DEFAULT_LAND_PEN);
 	set(data->sl_zoom,       MUIA_Numeric_Value,   zoom          ? *(LONG *)zoom   : DEFAULT_ZOOM_STEP);
 	set(data->sl_pan,        MUIA_Numeric_Value,   pan           ? *(LONG *)pan    : DEFAULT_PAN_STEP);
 	set(data->sl_cross,		 MUIA_Numeric_Value,   scross		 ? *(LONG *)scross : DEFAULT_CROSS_SIZE);
@@ -148,6 +154,12 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 	get(data->pd_cross, MUIA_Pendisplay_Spec, &ps);
 	DoMethod(cfg, MUIM_Dataspace_Add, ps, sizeof(struct MUI_PenSpec), MUICFG_Worldmap_CrossPen);
 
+	get(data->pd_background, MUIA_Pendisplay_Spec, &ps);
+	DoMethod(cfg, MUIM_Dataspace_Add, ps, sizeof(struct MUI_PenSpec), MUICFG_Worldmap_BackgroundPen);
+
+	get(data->pd_land, MUIA_Pendisplay_Spec, &ps);
+	DoMethod(cfg, MUIM_Dataspace_Add, ps, sizeof(struct MUI_PenSpec), MUICFG_Worldmap_LandPen);
+
 	val = xget(data->sl_zoom, MUIA_Numeric_Value);
 	DoMethod(cfg, MUIM_Dataspace_Add, &val, sizeof(LONG), MUICFG_Worldmap_ZoomStep);
 
@@ -166,9 +178,9 @@ LONG mGadgetsToConfig(Class *cl, Object *obj, struct MUIP_Settingsgroup_GadgetsT
 LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 {
 	struct MCPData *data;
-	APTR cy_resolution, pd_coast, pd_cross, sl_zoom, sl_pan, sl_cross;
+	APTR cy_resolution, pd_coast, pd_cross, pd_background, pd_land, sl_zoom, sl_pan, sl_cross;
 	static const char *res_entries[] = {"Full", "Reduced", NULL};
-	static const char infotext1[] = "\033bWorldmap.mcp 11.0\033n  (31.03.2026)\n"
+	static const char infotext1[] = "\033bWorldmap.mcp 11.1\033n  (06.04.2026)\n"
 									LIB_COPYRIGHT;
 	static const char infotext2[] =	"\n"
 									"A MUI Custom Class for \n"
@@ -199,6 +211,16 @@ LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 		MUIA_Frame, MUIV_Frame_Text,
 	TAG_END);
 
+	pd_background = MUI_NewObject(MUIC_Poppen,
+		MUIA_Pendisplay_Spec, "m1",
+		MUIA_Frame, MUIV_Frame_Text,
+	TAG_END);
+
+	pd_land = MUI_NewObject(MUIC_Poppen,
+		MUIA_Pendisplay_Spec, "m1",
+		MUIA_Frame, MUIV_Frame_Text,
+	TAG_END);
+
 	sl_zoom = MUI_NewObject(MUIC_Slider,
 		MUIA_Slider_Horiz, TRUE,
 		MUIA_Numeric_Min, 5,
@@ -223,6 +245,8 @@ LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 	data->cy_resolution = cy_resolution;
 	data->pd_coast = pd_coast;
 	data->pd_cross = pd_cross;
+	data->pd_background = pd_background;
+	data->pd_land = pd_land;
 	data->sl_zoom = sl_zoom;
 	data->sl_pan = sl_pan;
 	data->sl_cross = sl_cross;
@@ -242,6 +266,10 @@ LONG mNew(Class *cl, Object *obj, struct opSet *msg)
 			Child, pd_coast,
 			Child, LLabel("Cross Colour:"),
 			Child, pd_cross,
+			Child, LLabel("Background:"),
+			Child, pd_background,
+			Child, LLabel("Land:"),
+			Child, pd_land,
 			Child, LLabel("Zoom step:"),
 			Child, sl_zoom,
 			Child, LLabel("Pan step:"),

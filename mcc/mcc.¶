@@ -42,8 +42,11 @@ Settings (End)
 File
 1 "mcc.c"
 "mcc.c"
-"Transfer:dev/Worldmap/mcc/coastline2.c"
 "Transfer:dev/Worldmap/mcc/mcc.h"
+"Transfer:dev/Worldmap/mcc/mcp.h"
+"Transfer:dev/Worldmap/mcc/coastline_reduced.c"
+"Transfer:dev/Worldmap/mcc/coastline_full.c"
+"Transfer:dev/Worldmap/mcc/land_triangles.c"
 Storm Shell Project (Dependencies)
 "objects/mcc.o" "objects/mcc.debug"
 ""
@@ -62,11 +65,29 @@ File
 Storm Shell Project (Dependencies)
 "" ""
 ""
+File
+2 "mcp.h"
+"mcp.h"
+Storm Shell Project (Dependencies)
+"" ""
+""
 Section
 2 1 95
 File
-21 "coastline2.c"
-"coastline2.c"
+21 "coastline_reduced.c"
+"coastline_reduced.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+21 "coastline_full.c"
+"coastline_full.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+21 "land_triangles.c"
+"land_triangles.c"
 Storm Shell Project (Dependencies)
 "" ""
 ""

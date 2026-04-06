@@ -159,7 +159,6 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	rp->AreaInfo = &MyAreaInfo;
 
 	if (MyTimerBase) freq = ReadEClock(&t1);
-
 	draw_map(obj);
 	if (zoom_center_set) { draw_cross(rp, zoom_cx, zoom_cy, 5); }
 

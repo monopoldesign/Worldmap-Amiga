@@ -5,6 +5,7 @@
 #include <pragma/muimaster_lib.h>
 #include <proto/exec.h>
 #include <proto/graphics.h>
+#include <proto/layers.h>
 #include <proto/timer.h>
 #include <stdio.h>
 
@@ -12,16 +13,29 @@
 #include "mcp.h"
 #include "coastline_reduced.c"
 #include "coastline_full.c"
+#include "land_triangles.c"
 
 #pragma libbase WorldmapBase
 
 struct MapData
 {
 	struct MUI_EventHandlerNode EHNode;
+
 	short proj_reduced_x[COASTLINE_REDUCED_TOTAL_POINTS];
 	short proj_reduced_y[COASTLINE_REDUCED_TOTAL_POINTS];
 	short proj_full_x[COASTLINE_FULL_TOTAL_POINTS];
 	short proj_full_y[COASTLINE_FULL_TOTAL_POINTS];
+
+	short proj_tri_x[LAND_TRIANGLE_COUNT * 3];
+	short proj_tri_y[LAND_TRIANGLE_COUNT * 3];
+	BOOL proj_tri_visible[LAND_TRIANGLE_COUNT];
+	
+	#define MAX_VECTORS 6
+	struct AreaInfo MyAreaInfo;
+	struct TmpRas MyTmpRas;
+	PLANEPTR TmpRasBuffer;
+	WORD AreaBuffer[MAX_VECTORS * 5];	// 5 words per vector
+
 	short zoom_cx;
 	short zoom_cy;
 	long  zoom;
@@ -31,9 +45,9 @@ struct MapData
 	ULONG draw_time_ms;
 
 	LONG resolution, zoom_step, pan_step, cross_size;
-	struct MUI_PenSpec coast_penspec, cross_penspec;
-	LONG coast_pen, cross_pen;
-	BOOL coast_penchange, cross_penchange, resolution_changed;
+	struct MUI_PenSpec coast_penspec, cross_penspec, back_penspec, land_penspec;
+	LONG coast_pen, cross_pen, back_pen, land_pen;
+	BOOL coast_penchange, cross_penchange, back_penchange, land_penchange, resolution_changed;
 };
 
 struct IntuitionBase *IntuitionBase;
@@ -162,12 +176,19 @@ LONG mSetup(Class *cl, Object *obj, Msg msg)
 	char *p = buf;
 	LONG val = data->zoom_step;
 
+	InitArea(&data->MyAreaInfo, data->AreaBuffer, MAX_VECTORS);
+	data->TmpRasBuffer = AllocRaster(1280, 512);
+	InitTmpRas(&data->MyTmpRas, data->TmpRasBuffer, RASSIZE(1280, 512));
+	if (!data->TmpRasBuffer) { return FALSE; }
+
 	if (DoSuperMethodA(cl, obj, msg))
 	{
 		read_prefs(cl, obj);
 
 		data->coast_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->coast_penspec, 0);
 		data->cross_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->cross_penspec, 0);
+		data->back_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->back_penspec, 0);
+		data->land_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->land_penspec, 0);
 
 		data->zoom = 100;
 		data->zoom_center_set = FALSE;
@@ -194,7 +215,11 @@ LONG mCleanup(Class *cl, Object *obj, Msg msg)
 
 	MUI_ReleasePen(muiRenderInfo(obj), data->coast_pen);
 	MUI_ReleasePen(muiRenderInfo(obj), data->cross_pen);
+	MUI_ReleasePen(muiRenderInfo(obj), data->back_pen);
+	MUI_ReleasePen(muiRenderInfo(obj), data->land_pen);
+
 	DoMethod(_win(obj), MUIM_Window_RemEventHandler, &data->EHNode);
+	if (data->TmpRasBuffer) { FreeRaster(data->TmpRasBuffer, 1280, 512); }
 
 	return DoSuperMethodA(cl, obj, msg);
 }
@@ -221,8 +246,8 @@ LONG mAskMinMax(Class *cl, Object *obj, struct MUIP_AskMinMax *msg)
 ------------------------------------------------------------------------------*/
 LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 {
-	struct MapData *data = INST_DATA(cl, obj);
 	struct RastPort *rp = _rp(obj);
+	struct MapData *data = INST_DATA(cl, obj);
 	short x0 = _mleft(obj);
 	short y0 = _mtop(obj);
 	short x1 = x0 + _mwidth(obj);
@@ -235,28 +260,12 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	if (!(msg->flags & MADF_DRAWOBJECT))
 		return 0;
 
+	rp->TmpRas = &data->MyTmpRas;
+	rp->AreaInfo = &data->MyAreaInfo;
+
 	if (MyTimerBase) freq = ReadEClock(&t1);
-	project_points(obj, data);
 
-	// clear Window
-	SetAPen(rp, 0);
-	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
-
-	// draw Coast-Line
-	if (data->coast_penchange)
-	{
-		data->coast_penchange = FALSE;
-		MUI_ReleasePen(muiRenderInfo(obj), data->coast_pen);
-		data->coast_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->coast_penspec, 0);
-	}
-	SetAPen(rp, MUIPEN(data->coast_pen));
-
-	if (data->resolution == 0)
-		draw_coastline(rp, obj, data, data->proj_full_x, data->proj_full_y, coastline_full_lengths, COASTLINE_FULL_POLYLINE_COUNT);
-	else
-		draw_coastline(rp, obj, data, data->proj_reduced_x, data->proj_reduced_y, coastline_reduced_lengths, COASTLINE_REDUCED_POLYLINE_COUNT);
-
-	if (data->zoom_center_set) { draw_cross(rp, obj, data); }
+	draw_map(obj, data);
 
 	if (MyTimerBase)
 	{
@@ -575,6 +584,26 @@ void read_prefs(Class *cl, Object *obj)
 		DoMethod(obj, MUIM_KillNotify, MUICFG_Worldmap_CrossPen, &val);
 	}
 
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_BackgroundPen, &val))
+	{
+		data->back_penspec = *(struct MUI_PenSpec *)val;
+		data->back_penchange = TRUE;
+	}
+	else
+	{
+		DoMethod(obj, MUIM_KillNotify, MUICFG_Worldmap_BackgroundPen, &val);
+	}
+
+	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_LandPen, &val))
+	{
+		data->land_penspec = *(struct MUI_PenSpec *)val;
+		data->land_penchange = TRUE;
+	}
+	else
+	{
+		DoMethod(obj, MUIM_KillNotify, MUICFG_Worldmap_LandPen, &val);
+	}
+
 	if (DoMethod(obj, MUIM_GetConfigItem, MUICFG_Worldmap_ZoomStep, &val))
 		data->zoom_step = *val;
 	else
@@ -629,6 +658,73 @@ void project_points(Object *obj, struct MapData *data)
 }
 
 /*-----------------------------------------------------------------------------
+- project_dataset
+------------------------------------------------------------------------------*/
+void project_dataset(Object *obj, struct MapData *data,
+	const short *points, int total_points,
+	short *proj_x, short *proj_y)
+{
+	short x0, y0, cx, cy;
+	int i;
+
+	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
+	data->zoom_cx = cx;
+	data->zoom_cy = cy;
+
+	for (i = 0; i < total_points; i++)
+	{
+		short bx = (short)(x0 + ((long)(points[i * 2] + 18000) * _mwidth(obj)) / 36000);
+		short by = (short)(y0 + ((long)(9000 - points[i * 2 + 1]) * _mheight(obj)) / 18000);
+		proj_x[i] = (short)(cx + ((long)(bx - cx) * data->zoom) / 100);
+		proj_y[i] = (short)(cy + ((long)(by - cy) * data->zoom) / 100);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void project_triangles(Object *obj, struct MapData *data)
+{
+	short x0, y0, cx, cy;
+	short x1, y1;
+	int i;
+
+	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
+	x1 = x0 + _mwidth(obj) - 1;
+	y1 = y0 + _mheight(obj) - 1;
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT * 3; i++)
+	{
+		short bx = (short)(x0 + ((long)(land_triangles[i * 2] + 18000) * _mwidth(obj)) / 36000);
+		short by = (short)(y0 + ((long)(9000 - land_triangles[i * 2 + 1]) * _mheight(obj)) / 18000);
+		long px = (long)(cx + ((long)(bx - cx) * data->zoom) / 100);
+		long py = (long)(cy + ((long)(by - cy) * data->zoom) / 100);
+
+		if (px < -30000) { px = -30000; }
+		if (px >  30000) { px =  30000; }
+		if (py < -30000) { py = -30000; }
+		if (px >  30000) { py =  30000; }
+
+		data->proj_tri_x[i] = (short)px;
+		data->proj_tri_y[i] = (short)py;
+	}
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		short ax  = data->proj_tri_x[idx],     ay  = data->proj_tri_y[idx];
+		short bx  = data->proj_tri_x[idx + 1], by  = data->proj_tri_y[idx + 1];
+		short cx2 = data->proj_tri_x[idx + 2], cy2 = data->proj_tri_y[idx + 2];
+
+		data->proj_tri_visible[i] = TRUE;
+		if (ax < x0 && bx < x0 && cx2 < x0) { data->proj_tri_visible[i] = FALSE; }
+		if (ax > x1 && bx > x1 && cx2 > x1) { data->proj_tri_visible[i] = FALSE; }
+		if (ay < y0 && by < y0 && cy2 < y0) { data->proj_tri_visible[i] = FALSE; }
+	}
+}
+
+/*-----------------------------------------------------------------------------
 - screen_to_lonlat
 ------------------------------------------------------------------------------*/
 void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, short *lon, short *lat)
@@ -642,6 +738,28 @@ void screen_to_lonlat(Object *obj, struct MapData *data, short mx, short my, sho
 
 	*lon = (short)(((bx - x0) * 36000L) / _mwidth(obj)) - 18000;
 	*lat = 9000 - (short)(((by - y0) * 18000L) / _mheight(obj));
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void clear_map(Object *obj, struct MapData *data)
+{
+	struct RastPort *rp = _rp(obj);
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
+
+	if (data->back_penchange)
+	{
+		data->back_penchange = FALSE;
+		MUI_ReleasePen(muiRenderInfo(obj), data->back_pen);
+		data->back_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->back_penspec, 0);
+	}
+	SetAPen(rp, MUIPEN(data->back_pen));
+
+	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
 }
 
 /*-----------------------------------------------------------------------------
@@ -709,24 +827,85 @@ void draw_coastline(struct RastPort *rp, Object *obj, struct MapData *data,
 }
 
 /*-----------------------------------------------------------------------------
-- project_dataset
+- DisposeApp()
 ------------------------------------------------------------------------------*/
-void project_dataset(Object *obj, struct MapData *data,
-	const short *points, int total_points,
-	short *proj_x, short *proj_y)
+void draw_fill(struct RastPort *rp, Object *obj, struct MapData *data)
 {
-	short x0, y0, cx, cy;
 	int i;
 
-	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
-	data->zoom_cx = cx;
-	data->zoom_cy = cy;
-
-	for (i = 0; i < total_points; i++)
+	if (data->land_penchange)
 	{
-		short bx = (short)(x0 + ((long)(points[i * 2] + 18000) * _mwidth(obj)) / 36000);
-		short by = (short)(y0 + ((long)(9000 - points[i * 2 + 1]) * _mheight(obj)) / 18000);
-		proj_x[i] = (short)(cx + ((long)(bx - cx) * data->zoom) / 100);
-		proj_y[i] = (short)(cy + ((long)(by - cy) * data->zoom) / 100);
+		data->land_penchange = FALSE;
+		MUI_ReleasePen(muiRenderInfo(obj), data->land_pen);
+		data->land_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->land_penspec, 0);
 	}
+	SetAPen(rp, MUIPEN(data->land_pen));
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		if (!data->proj_tri_visible[i]) { continue; }
+
+		AreaMove(rp, data->proj_tri_x[idx]    , data->proj_tri_y[idx]);
+		AreaDraw(rp, data->proj_tri_x[idx + 1], data->proj_tri_y[idx + 1]);
+		AreaDraw(rp, data->proj_tri_x[idx + 2], data->proj_tri_y[idx + 2]);
+		AreaEnd(rp);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- project_dataset
+------------------------------------------------------------------------------*/
+void draw_map(Object *obj, struct MapData *data)
+{
+	struct Window *win = _window(obj);
+	struct RastPort *rp = _rp(obj);
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
+	short cx, cy;
+
+	struct Region *clip;
+	struct Region *old_clip;
+	struct Rectangle rect;
+
+	// set Clipping
+	get_map_coords(obj, data, &x0, &y0, &cx, &cy);
+
+	rect.MinX = x0;
+	rect.MinY = y0;
+	rect.MaxX = x0 + _mwidth(obj) - 1;
+	rect.MaxY = y0 + _mheight(obj) - 1;
+
+	clip = NewRegion();
+	OrRectRegion(clip, &rect);
+	old_clip = InstallClipRegion(win->WLayer, clip);
+
+	project_points(obj, data);
+	project_triangles(obj, data);
+
+	clear_map(obj, data);
+	draw_fill(rp, obj, data);
+
+	// draw Coast-Line
+	if (data->coast_penchange)
+	{
+		data->coast_penchange = FALSE;
+		MUI_ReleasePen(muiRenderInfo(obj), data->coast_pen);
+		data->coast_pen = MUI_ObtainPen(muiRenderInfo(obj), &data->coast_penspec, 0);
+	}
+	SetAPen(rp, MUIPEN(data->coast_pen));
+
+	if (data->resolution == 0)
+		draw_coastline(rp, obj, data, data->proj_full_x, data->proj_full_y, coastline_full_lengths, COASTLINE_FULL_POLYLINE_COUNT);
+	else
+		draw_coastline(rp, obj, data, data->proj_reduced_x, data->proj_reduced_y, coastline_reduced_lengths, COASTLINE_REDUCED_POLYLINE_COUNT);
+
+	if (data->zoom_center_set) { draw_cross(rp, obj, data); }
+
+	// Remove Clipping
+	InstallClipRegion(win->WLayer, old_clip);
+	DisposeRegion(clip);
 }

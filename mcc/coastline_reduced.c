@@ -1,16 +1,16 @@
 /* World coastline - Natural Earth 110m
    Coordinates: lon/lat x100, stored as a short (16-bit)
-   Polylines: 79 Total points: 1206 */
+   Polylines: 78 Total points: 1195 */
 
-#define COASTLINE_REDUCED_POLYLINE_COUNT 79
-#define COASTLINE_REDUCED_TOTAL_POINTS 1206
+#define COASTLINE_REDUCED_POLYLINE_COUNT 78
+#define COASTLINE_REDUCED_TOTAL_POINTS 1195
 
 const short coastline_reduced_lengths[] = {
     4, 4, 14, 12, 4, 9, 8, 6, 6, 23, 5, 5, 6, 5, 6, 4,
     4, 4, 3, 11, 7, 4, 6, 5, 3, 3, 4, 7, 7, 4, 42, 3,
     4, 8, 7, 11, 5, 10, 4, 10, 6, 6, 7, 41, 21, 7, 5, 12,
     7, 3, 9, 142, 3, 5, 2, 151, 158, 2, 2, 3, 161, 7, 2, 2,
-    2, 3, 11, 3, 3, 14, 4, 4, 5, 3, 4, 6, 7, 23, 53,
+    2, 3, 3, 3, 14, 4, 4, 5, 3, 4, 6, 7, 23, 53,
 };
 
 const short coastline_reduced_points[] = {
@@ -177,8 +177,6 @@ const short coastline_reduced_points[] = {
      18000,   7083,   18000,   7152,
      18000,  -1656,   18000,  -1607,
      -6120,  -5185,   -5855,  -5110,   -6120,  -5185,
-      4668,   4461,    4910,   4640,    5204,   4680,    5031,   4461,    5250,   4279,    5474,   4095,    5374,   3791,    5084,   3687,
-      4886,   3882,    4858,   4181,    4668,   4461,
      -6452,   4987,   -6184,   4929,   -6452,   4987,
      -9656,   6968,   -9980,   6940,   -9656,   6968,
     -10652,   7308,  -10446,   7099,  -10098,   7002,  -10424,   6891,  -10712,   6912,  -11153,   6863,  -11522,   6928,  -11242,   7037,
