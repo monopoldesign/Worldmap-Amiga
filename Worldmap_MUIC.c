@@ -7,11 +7,13 @@
 #include <pragma/muimaster_lib.h>
 #include <proto/exec.h>
 #include <proto/graphics.h>
+#include <proto/layers.h>
 #include <proto/timer.h>
 #include <stdio.h>
 
 #include "worldmap_mcc.h"
-#include "coastline2.c"
+#include "coastline.c"
+#include "land_triangles.c"
 
 /******************************************************************************
 * Definitions
@@ -53,14 +55,14 @@ void end(void);
 struct ObjApp * CreateApp(void);
 void DisposeApp(struct ObjApp * ObjectApp);
 
-void get_map_coords(short *x0, short *y0, short *cx, short *cy);
-void get_map_coords_obj(Object *obj, short *x0, short *y0, short *cx, short *cy);
-void project_points(void);
-void project_points_obj(Object *obj);
-void screen_to_lonlat(short mx, short my, short *lon, short *lat);
-void screen_to_lonlat_obj(Object *obj, short mx, short my, short *lon, short *lat);
+void get_map_coords(Object *obj, short *x0, short *y0, short *cx, short *cy);
+void project_points(Object *obj);
+void screen_to_lonlat(Object *obj, short mx, short my, short *lon, short *lat);
 void draw_cross(struct RastPort *rp, short x, short y, short size);
-void draw_map(void);
+void clear_map(Object *obj);
+void draw_coast(Object *obj);
+void draw_fill(struct RastPort *rp);
+void draw_map(Object *obj);
 void update_display(void);
 
 /******************************************************************************
@@ -85,6 +87,16 @@ short zoom_cy         = 0;
 
 short proj_x[COASTLINE_TOTAL_POINTS];
 short proj_y[COASTLINE_TOTAL_POINTS];
+
+short proj_tri_x[LAND_TRIANGLE_COUNT * 3];
+short proj_tri_y[LAND_TRIANGLE_COUNT * 3];
+BOOL proj_tri_visible[LAND_TRIANGLE_COUNT];
+
+#define MAX_VECTORS 6
+struct AreaInfo MyAreaInfo;
+struct TmpRas MyTmpRas;
+PLANEPTR TmpRasBuffer = NULL;
+WORD AreaBuffer[MAX_VECTORS * 5];	// 5 words per vector
 
 char lon_buf[16];
 char lat_buf[16];
@@ -134,8 +146,6 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	short y0 = _mtop(obj);
 	short x1 = x0 + _mwidth(obj);
 	short y1 = y0 + _mheight(obj);
-	int i, j, idx = 0;
-	BOOL pendown;
 
 	struct EClockVal t1, t2;
 	ULONG freq;
@@ -145,45 +155,12 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 	if (!(msg->flags & MADF_DRAWOBJECT))
 		return 0;
 
+	rp->TmpRas = &MyTmpRas;
+	rp->AreaInfo = &MyAreaInfo;
+
 	if (MyTimerBase) freq = ReadEClock(&t1);
-	project_points_obj(obj);
 
-	// clear Window
-	SetAPen(rp, 0);
-	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
-
-	// draw Coast-Line
-	SetAPen(rp, 1);
-	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
-	{
-		int count = coastline_lengths[i];
-		pendown = FALSE;
-
-		for (j = 0; j < count; j++)
-		{
-			short px = proj_x[idx + j];
-			short py = proj_y[idx + j];
-
-			if (px >= x0 && px < x1 && py >= y0 && py < y1)
-			{
-				if (!pendown)
-				{
-					Move(rp, px, py);
-					pendown = TRUE;
-				}
-				else
-				{
-					Draw(rp, px, py);
-				}
-			}
-			else
-			{
-				pendown = FALSE;
-			}
-		}
-		idx += count;
-	}
-
+	draw_map(obj);
 	if (zoom_center_set) { draw_cross(rp, zoom_cx, zoom_cy, 5); }
 
 	if (MyTimerBase)
@@ -203,6 +180,10 @@ LONG mDraw(Class *cl, Object *obj, struct MUIP_Draw *msg)
 LONG mSetup(Class *cl, Object *obj, Msg msg)
 {
 	struct MapData *data = INST_DATA(cl,obj);
+
+	InitArea(&MyAreaInfo, AreaBuffer, MAX_VECTORS);
+	TmpRasBuffer = AllocRaster(1280, 512);
+	InitTmpRas(&MyTmpRas, TmpRasBuffer, RASSIZE(1280, 512));
 
 	if (DoSuperMethodA(cl, obj, msg))
 	{
@@ -225,6 +206,8 @@ LONG mCleanup(Class *cl, Object *obj, Msg msg)
 	struct MapData *data = INST_DATA(cl, obj);
 
 	DoMethod(_win(obj), MUIM_Window_RemEventHandler, &data->EHNode);
+	if (TmpRasBuffer) { FreeRaster(TmpRasBuffer, 1280, 512); }
+
 	return 0;
 }
 
@@ -250,7 +233,7 @@ LONG mHandleEvent (Class *cl, Object *obj, struct MUIP_HandleEvent *msg)
 			if (mx >= x0 && mx < x1 && my >= y0 && my < y1)
 			{
 				short lon, lat;
-				screen_to_lonlat_obj(obj, mx, my, &lon, &lat);
+				screen_to_lonlat(obj, mx, my, &lon, &lat);
 
 				if (lon >= -18000 && lon <= 18000 && lat >= -9000 && lat <= 9000)
 				{
@@ -606,26 +589,7 @@ void DisposeApp(struct ObjApp * ObjectApp)
 /*-----------------------------------------------------------------------------
 - DisposeApp()
 ------------------------------------------------------------------------------*/
-void get_map_coords(short *x0, short *y0, short *cx, short *cy)
-{
-	APTR area = App->AR_map;
-
-    *x0 = _mleft(area);
-    *y0 = _mtop(area);
-
-    if (zoom_center_set)
-    {
-        *cx = (short)(*x0 + ((long)(zoom_center_lon + 18000) * _mwidth(area)) / 36000);
-        *cy = (short)(*y0 + ((long)(9000 - zoom_center_lat) * _mheight(area)) / 18000);
-    }
-    else
-    {
-        *cx = *x0 + _mwidth(area) / 2;
-        *cy = *y0 + _mheight(area) / 2;
-    }
-}
-
-void get_map_coords_obj(Object *obj, short *x0, short *y0, short *cx, short *cy)
+void get_map_coords(Object *obj, short *x0, short *y0, short *cx, short *cy)
 {
     *x0 = _mleft(obj);
     *y0 = _mtop(obj);
@@ -645,31 +609,12 @@ void get_map_coords_obj(Object *obj, short *x0, short *y0, short *cx, short *cy)
 /*-----------------------------------------------------------------------------
 - DisposeApp()
 ------------------------------------------------------------------------------*/
-void project_points(void)
-{
-	APTR area = App->AR_map;
-	short x0, y0, cx, cy;
-	int i;
-
-	get_map_coords(&x0, &y0, &cx, &cy);
-	zoom_cx = cx;
-	zoom_cy = cy;
-
-	for (i = 0; i < COASTLINE_TOTAL_POINTS; i++)
-	{
-		short bx = (short)(x0 + ((long)(coastline_points[i * 2] + 18000) * _mwidth(area)) / 36000);
-		short by = (short)(y0 + ((long)(9000 - coastline_points[i * 2 + 1]) * _mheight(area)) / 18000);
-		proj_x[i] = (short)(cx + ((long)(bx - cx) * zoom) / 100);
-		proj_y[i] = (short)(cy + ((long)(by - cy) * zoom) / 100);
-	}
-}
-
-void project_points_obj(Object *obj)
+void project_points(Object *obj)
 {
 	short x0, y0, cx, cy;
 	int i;
 
-	get_map_coords_obj(obj, &x0, &y0, &cx, &cy);
+	get_map_coords(obj, &x0, &y0, &cx, &cy);
 	zoom_cx = cx;
 	zoom_cy = cy;
 
@@ -685,26 +630,56 @@ void project_points_obj(Object *obj)
 /*-----------------------------------------------------------------------------
 - DisposeApp()
 ------------------------------------------------------------------------------*/
-void screen_to_lonlat(short mx, short my, short *lon, short *lat)
+void project_triangles(Object *obj)
 {
-	APTR area = App->AR_map;
 	short x0, y0, cx, cy;
-	long bx, by;
+	short x1, y1;
+	int i;
 
-	get_map_coords(&x0, &y0, &cx, &cy);
-	bx = cx + ((long)(mx - cx) * 100L) / zoom;
-	by = cy + ((long)(my - cy) * 100L) / zoom;
+	get_map_coords(obj, &x0, &y0, &cx, &cy);
+	x1 = x0 + _mwidth(obj) - 1;
+	y1 = y0 + _mheight(obj) - 1;
 
-	*lon = (short)(((bx - x0) * 36000L) / _mwidth(area)) - 18000;
-	*lat = 9000 - (short)(((by - y0) * 18000L) / _mheight(area));
+	for (i = 0; i < LAND_TRIANGLE_COUNT * 3; i++)
+	{
+		short bx = (short)(x0 + ((long)(land_triangles[i * 2] + 18000) * _mwidth(obj)) / 36000);
+		short by = (short)(y0 + ((long)(9000 - land_triangles[i * 2 + 1]) * _mheight(obj)) / 18000);
+		long px = (long)(cx + ((long)(bx - cx) * zoom) / 100);
+		long py = (long)(cy + ((long)(by - cy) * zoom) / 100);
+
+		if (px < -30000) { px = -30000; }
+		if (px >  30000) { px =  30000; }
+		if (py < -30000) { py = -30000; }
+		if (px >  30000) { py =  30000; }
+
+		proj_tri_x[i] = (short)px;
+		proj_tri_y[i] = (short)py;
+	}
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		short ax  = proj_tri_x[idx],     ay  = proj_tri_y[idx];
+		short bx  = proj_tri_x[idx + 1], by  = proj_tri_y[idx + 1];
+		short cx2 = proj_tri_x[idx + 2], cy2 = proj_tri_y[idx + 2];
+
+		proj_tri_visible[i] = TRUE;
+		if (ax < x0 && bx < x0 && cx2 < x0) { proj_tri_visible[i] = FALSE; }
+		if (ax > x1 && bx > x1 && cx2 > x1) { proj_tri_visible[i] = FALSE; }
+		if (ay < y0 && by < y0 && cy2 < y0) { proj_tri_visible[i] = FALSE; }
+	}
 }
 
-void screen_to_lonlat_obj(Object *obj, short mx, short my, short *lon, short *lat)
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void screen_to_lonlat(Object *obj, short mx, short my, short *lon, short *lat)
 {
 	short x0, y0, cx, cy;
 	long bx, by;
 
-	get_map_coords(&x0, &y0, &cx, &cy);
+	get_map_coords(obj, &x0, &y0, &cx, &cy);
 	bx = cx + ((long)(mx - cx) * 100L) / zoom;
 	by = cy + ((long)(my - cy) * 100L) / zoom;
 
@@ -727,29 +702,31 @@ void draw_cross(struct RastPort *rp, short x, short y, short size)
 /*-----------------------------------------------------------------------------
 - DisposeApp()
 ------------------------------------------------------------------------------*/
-void draw_map(void)
+void clear_map(Object *obj)
 {
-	APTR area = App->AR_map;
-	struct RastPort *rp = _rp(area);
-	short x0 = _mleft(area);
-	short y0 = _mtop(area);
-	short x1 = x0 + _mwidth(area);
-	short y1 = y0 + _mheight(area);
+	struct RastPort *rp = _rp(obj);
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
+
+	SetAPen(rp, 0);
+	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_coast(Object *obj)
+{
+	struct RastPort *rp = _rp(obj);
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
 	int i, j, idx = 0;
 	BOOL pendown;
 
-	struct EClockVal t1, t2;
-	ULONG freq;
-	ULONG ticks;
-	ULONG ms;
-
-	freq = ReadEClock(&t1);
-
-	// clear Window
-	SetAPen(rp, 0);
-	RectFill(rp, x0, y0, x1 - 1, y1 - 1);
-
-	// draw Coast-Line
 	SetAPen(rp, 1);
 	for (i = 0; i < COASTLINE_POLYLINE_COUNT; i++)
 	{
@@ -780,16 +757,70 @@ void draw_map(void)
 		}
 		idx += count;
 	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_fill(struct RastPort *rp)
+{
+	int i;
+
+	SetAPen(rp, 3);
+
+	for (i = 0; i < LAND_TRIANGLE_COUNT; i++)
+	{
+		int idx = i * 3;
+
+		if (!proj_tri_visible[i]) { continue; }
+
+		AreaMove(rp, proj_tri_x[idx]    , proj_tri_y[idx]);
+		AreaDraw(rp, proj_tri_x[idx + 1], proj_tri_y[idx + 1]);
+		AreaDraw(rp, proj_tri_x[idx + 2], proj_tri_y[idx + 2]);
+		AreaEnd(rp);
+	}
+}
+
+/*-----------------------------------------------------------------------------
+- DisposeApp()
+------------------------------------------------------------------------------*/
+void draw_map(Object *obj)
+{
+	struct Window *win = _window(obj);
+	struct RastPort *rp = _rp(obj);
+	short x0 = _mleft(obj);
+	short y0 = _mtop(obj);
+	short x1 = x0 + _mwidth(obj);
+	short y1 = y0 + _mheight(obj);
+	short cx, cy;
+
+	struct Region *clip;
+	struct Region *old_clip;
+	struct Rectangle rect;
+
+	// set Clipping
+	get_map_coords(obj, &x0, &y0, &cx, &cy);
+
+	rect.MinX = x0;
+	rect.MinY = y0;
+	rect.MaxX = x0 + _mwidth(obj) - 1;
+	rect.MaxY = y0 + _mheight(obj) - 1;
+
+	clip = NewRegion();
+	OrRectRegion(clip, &rect);
+	old_clip = InstallClipRegion(win->WLayer, clip);
+
+	project_points(obj);
+	project_triangles(obj);
+	clear_map(obj);
+	draw_fill(rp);
+	draw_coast(obj);
 
 	if (zoom_center_set) { draw_cross(rp, zoom_cx, zoom_cy, 5); }
 
-	ReadEClock(&t2);
-
-	ticks = t2.ev_lo - t1.ev_lo;
-	ms = (ticks * 1000) / freq;
-
-	sprintf(win_title, "World Map - %1u ms (%1u ticks)", ms, ticks);
-	set(App->WI_main, MUIA_Window_Title, win_title);
+	// Remove Clipping
+	InstallClipRegion(win->WLayer, old_clip);
+	DisposeRegion(clip);
 }
 
 /*-----------------------------------------------------------------------------

@@ -43,7 +43,8 @@ File
 1 "Worldmap_MUI.c"
 "Worldmap_MUI.c"
 "Transfer:dev/Worldmap/worldmap_mcc.h"
-"Transfer:dev/Worldmap/coastline2.c"
+"Transfer:dev/Worldmap/coastline.c"
+"Transfer:dev/Worldmap/land_triangles.c"
 Storm Shell Project (Dependencies)
 "objects/Worldmap_MUI.o" "objects/Worldmap_MUI.debug"
 ""
@@ -61,6 +62,18 @@ Section
 File
 21 "coastline2.c"
 "coastline2.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+21 "coastline.c"
+"coastline.c"
+Storm Shell Project (Dependencies)
+"" ""
+""
+File
+21 "land_triangles.c"
+"land_triangles.c"
 Storm Shell Project (Dependencies)
 "" ""
 ""

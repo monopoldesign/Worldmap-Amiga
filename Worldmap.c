@@ -412,6 +412,8 @@ int main(void)
 		running = HandleWorldmapIDCMP();
 	}
 
+	if (TmpRasBuffer) { FreeRaster(TmpRasBuffer, 1280, 512); }
+
 	CloseWorldmapWindow();
 	CloseLibrary((struct Library *)GadToolsBase);
 	CloseLibrary((struct Library *)GfxBase);

@@ -129,9 +129,6 @@ int main(void)
 	rp->TmpRas = &MyTmpRas;
 	rp->AreaInfo = &MyAreaInfo;
 
-	//project_points();
-	//draw_map();
-
 	while (running)
 	{
 		ULONG ret = DoMethod(App->App, MUIM_Application_NewInput, &signal);
@@ -230,6 +227,8 @@ int main(void)
 		if (running && signal)
 			Wait(signal);
 	}
+
+	if (TmpRasBuffer) { FreeRaster(TmpRasBuffer, 1280, 512); }
 
 	DisposeApp(App);
 	end();
